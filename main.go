@@ -132,7 +132,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string) (string, erro
 			if bytes.Equal(res.FunctionCode, app.functionCode) {
 				log.Println("[info] function code is not changed")
 			} else {
-				fmt.Println("[info] function code is changed. updating function...")
+				log.Println("[info] function code is changed. updating function...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
 					Name:           aws.String(name),
 					IfMatch:        aws.String(etag),
@@ -169,7 +169,13 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	for _, l := range res.TestResult.FunctionExecutionLogs {
 		log.Println(l)
 	}
-	fmt.Println(aws.ToString(res.TestResult.FunctionOutput))
+	var out any
+	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &out); err != nil {
+		return fmt.Errorf("failed to parse function output, %w", err)
+	}
+	prettyOutput, _ := json.MarshalIndent(out, "", "  ")
+	prettyOutput = append(prettyOutput, '\n')
+	os.Stdout.Write(prettyOutput)
 	if failed {
 		return errors.New("test failed")
 	}

@@ -1,6 +1,6 @@
 # cfft
 
-cfft is a testing tool for CloudFront Functions.
+cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html).
 
 ## Usage
 
