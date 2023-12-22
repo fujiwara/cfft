@@ -9,11 +9,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/aereal/jsondiff"
 	"github.com/alecthomas/kong"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/itchyny/gojq"
 )
 
 type CFFT struct {
@@ -156,6 +158,31 @@ func (app *CFFT) TestFunction(ctx context.Context, name string) error {
 		fmt.Println(aws.ToString(res.TestResult.FunctionOutput))
 		if failed {
 			return errors.New("test failed")
+		}
+		if testCase.Expect == nil {
+			continue
+		}
+
+		var rhs any
+		if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &rhs); err != nil {
+			return fmt.Errorf("failed to parse function output, %w", err)
+		}
+		var options []jsondiff.Option
+		if testCase.Ignore != "" {
+			q, err := gojq.Parse(testCase.Ignore)
+			if err != nil {
+				return fmt.Errorf("failed to parse ignore query, %w", err)
+			}
+			options = append(options, jsondiff.Ignore(q))
+		}
+		diff, err := jsondiff.DiffFromObjects(testCase.Expect, rhs, options...)
+		if err != nil {
+			return fmt.Errorf("failed to diff, %w", err)
+		}
+		if diff != "" {
+			return fmt.Errorf("expect and actual are not equal:\n%s", diff)
+		} else {
+			log.Println("[info] expect and actual are equal")
 		}
 	}
 	return nil
