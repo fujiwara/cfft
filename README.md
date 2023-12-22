@@ -1,15 +1,15 @@
-# {{ .Project.Name }}
+# cfft
 
-{{ .Project.Description }}
+cfft is a testing tool for CloudFront Functions.
 
 ## Usage
 
-cfft
+TODO
 
 ## LICENSE
 
-{{ .Project.License }}
+MIT
 
 ## Author
 
-{{ .Project.Author.Name }} <{{ .Project.Author.Email }}>
+Fujiwara Shunichiro
