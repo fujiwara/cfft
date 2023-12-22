@@ -2,6 +2,12 @@ name: tagpr
 on:
   push:
     branches: ["main"]
+
+permissions:
+  packages: write
+  contents: write
+  pull-requests: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
