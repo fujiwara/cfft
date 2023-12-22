@@ -71,7 +71,18 @@ $ cfft my-function function.js event.json
 2023/12/23 01:47:04 [info] function code is not changed
 2023/12/23 01:47:04 [info] testing function add-cache-control with event:event.json expect: ignore:
 2023/12/23 01:47:04 [info] ComputeUtilization:27
-{"response":{"headers":{"cache-control":{"value":"public, max-age=63072000"}},"statusDescription":"OK","cookies":{},"statusCode":200}}
+{
+  "response": {
+    "cookies": {},
+    "headers": {
+      "cache-control": {
+        "value": "public, max-age=63072000"
+      }
+    },
+    "statusCode": 200,
+    "statusDescription": "OK"
+  }
+}
 ```
 
 cfft executes `my-function` with `event.json` at CloudFront Functions in development stage.
@@ -93,7 +104,18 @@ $ cfft my-function function.js event.json expect.json
 2023/12/23 01:54:16 [info] function code is not changed
 2023/12/23 01:54:16 [info] testing function add-cache-control with event:event.json expect:expect.json ignore:
 2023/12/23 01:54:16 [info] ComputeUtilization:47
-{"response":{"headers":{"cache-control":{"value":"public, max-age=63072000"}},"statusDescription":"OK","cookies":{},"statusCode":200}}
+{
+  "response": {
+    "cookies": {},
+    "headers": {
+      "cache-control": {
+        "value": "public, max-age=63072000"
+      }
+    },
+    "statusCode": 200,
+    "statusDescription": "OK"
+  }
+}
 2023/12/23 01:54:16 [info] expect and actual are equal
 ```
 
