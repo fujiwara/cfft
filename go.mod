@@ -1,6 +1,6 @@
 module github.com/fujiwara/cfft
 
-go 1.21.0
+go 1.20
 
 require (
 	github.com/aereal/jsondiff v0.2.3
