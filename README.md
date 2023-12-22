@@ -89,7 +89,7 @@ cfft executes `my-function` with `event.json` at CloudFront Functions in develop
 
 - If my-function is not found, cfft create a new function with the name and runtime `cloudfront-js-2.0`.
 - If the function is found and the code is different from the `function.js`, cfft updates the function code.
-- cfft shows the compute utilization of the function after the execution.
+- Shows logs and compute utilization of the function after the execution.
 
 ### Compare the result with the expect object
 
