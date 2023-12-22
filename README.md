@@ -22,6 +22,8 @@ Flags:
 
 ### Add Cache-Control header in viewer-response
 
+See [examples/add-cache-control](examples/add-cache-control) directory.
+
 ```js
 // function.js
 async function handler(event) {
