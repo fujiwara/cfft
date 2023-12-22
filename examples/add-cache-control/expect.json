@@ -1,0 +1,12 @@
+{
+    "response": {
+        "headers": {
+            "cache-control": {
+                "value": "public, max-age=63072000"
+            }
+        },
+        "statusDescription": "OK",
+        "cookies": {},
+        "statusCode": 200
+    }
+}
