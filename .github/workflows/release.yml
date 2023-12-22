@@ -13,6 +13,9 @@ on:
         required: true
         type: string
 
+permissions:
+  packages: write
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
