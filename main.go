@@ -23,70 +23,51 @@ var Stage = types.FunctionStageDevelopment
 type CFFT struct {
 	cloudfront   *cloudfront.Client
 	functionCode []byte
-	testCases    []TestCase
+	testCases    []*TestCase
 }
 
 type TestCase struct {
-	Event  []byte
-	Expect any
-	Ignore *gojq.Query
-}
+	EventFile  string
+	ExpectFile string
+	IgnoreStr  string
 
-type CLI struct {
-	Name     string `arg:"" help:"function name"`
-	Function string `arg:"" help:"function code file"`
-	Event    string `arg:"" help:"event object file"`
-	Expect   string `arg:"" help:"expect object file" optional:"true"`
-	Ignore   string `short:"i" long:"ignore" help:"ignore fields in the expect object by jq syntax"`
+	event  []byte
+	expect any
+	ignore *gojq.Query
 }
 
 func Run(ctx context.Context) error {
-	var cli CLI
-	kong.Parse(&cli)
+	cli := &CLI{}
+	kong.Parse(cli)
 
-	awscfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to load config, %w", err)
-	}
-	app := &CFFT{
-		cloudfront: cloudfront.NewFromConfig(awscfg),
-	}
-	app.functionCode, err = os.ReadFile(cli.Function)
+	log.Printf("[info] loading function %s from %s", cli.Name, cli.Function)
+	functionCode, err := os.ReadFile(cli.Function)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
-	testCase := TestCase{}
-
-	testCase.Event, err = os.ReadFile(cli.Event)
+	testCase, err := cli.NewTestCase(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to read event object, %w", err)
-	}
-	var eventObject any
-	if err := json.Unmarshal(testCase.Event, &eventObject); err != nil {
-		return fmt.Errorf("failed to parse event object, %w", err)
+		return fmt.Errorf("failed to create test case, %w", err)
 	}
 
-	if cli.Expect != "" {
-		expectBytes, err := os.ReadFile(cli.Expect)
-		if err != nil {
-			return fmt.Errorf("failed to read expect object, %w", err)
-		}
-		if err := json.Unmarshal(expectBytes, &testCase.Expect); err != nil {
-			return fmt.Errorf("failed to parse expect object, %w", err)
-		}
+	app, err := NewApp(ctx, functionCode, testCase)
+	if err != nil {
+		return fmt.Errorf("failed to create app, %w", err)
 	}
-
-	if cli.Ignore != "" {
-		q, err := gojq.Parse(cli.Ignore)
-		if err != nil {
-			return fmt.Errorf("failed to parse ignore query, %w", err)
-		}
-		testCase.Ignore = q
-	}
-
-	app.testCases = append(app.testCases, testCase)
-
 	return app.TestFunction(ctx, cli.Name)
+}
+
+func NewApp(ctx context.Context, functionCode []byte, testCases ...*TestCase) (*CFFT, error) {
+	app := &CFFT{
+		functionCode: functionCode,
+		testCases:    testCases,
+	}
+	awscfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config, %w", err)
+	}
+	app.cloudfront = cloudfront.NewFromConfig(awscfg)
+	return app, nil
 }
 
 func (app *CFFT) TestFunction(ctx context.Context, name string) error {
@@ -168,12 +149,13 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string) (string, erro
 	return etag, nil
 }
 
-func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c TestCase) error {
+func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
+	log.Printf("[info] testing function %s with event:%s expect:%s ignore:%s", name, c.EventFile, c.ExpectFile, c.IgnoreStr)
 	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
 		Stage:       Stage,
-		EventObject: c.Event,
+		EventObject: c.event,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to test function, %w", err)
@@ -191,7 +173,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c TestCase)
 	if failed {
 		return errors.New("test failed")
 	}
-	if c.Expect == nil {
+	if c.ExpectFile == "" {
 		return nil
 	}
 
@@ -200,11 +182,11 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c TestCase)
 		return fmt.Errorf("failed to parse function output, %w", err)
 	}
 	var options []jsondiff.Option
-	if c.Ignore != nil {
-		options = append(options, jsondiff.Ignore(c.Ignore))
+	if c.IgnoreStr != "" {
+		options = append(options, jsondiff.Ignore(c.ignore))
 	}
 	diff, err := jsondiff.Diff(
-		&jsondiff.Input{Name: "expect", X: c.Expect},
+		&jsondiff.Input{Name: "expect", X: c.expect},
 		&jsondiff.Input{Name: "actual", X: rhs},
 		options...,
 	)

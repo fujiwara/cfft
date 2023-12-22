@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	app "github.com/fujiwara/cfft"
 )
@@ -10,7 +11,8 @@ import (
 func main() {
 	ctx := context.TODO()
 	if err := run(ctx); err != nil {
-		log.Fatal(err)
+		log.Printf("[error] %s", err)
+		os.Exit(1)
 	}
 }
 

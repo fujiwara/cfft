@@ -1,6 +1,6 @@
 .PHONY: clean test
 
-cfft: go.* *.go
+cfft: go.* *.go cmd/cfft/*.go
 	go build -o $@ cmd/cfft/main.go
 
 clean:
