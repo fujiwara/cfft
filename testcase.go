@@ -2,6 +2,7 @@ package cfft
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -44,7 +45,9 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 		if err != nil {
 			return fmt.Errorf("failed to read expect object, %w", err)
 		}
-		c.expect = expectBytes
+		if err := json.Unmarshal(expectBytes, &c.expect); err != nil {
+			return fmt.Errorf("failed to parse expect object, %w", err)
+		}
 	}
 
 	if len(c.Ignore) > 0 {

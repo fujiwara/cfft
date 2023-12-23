@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/fatih/color"
 )
 
 type CLI struct {
 	Test    TestCmd    `cmd:"" help:"test function"`
 	Init    InitCmd    `cmd:"" help:"initialize files"`
+	Diff    DiffCmd    `cmd:"" help:"diff function code"`
 	Version VersionCmd `cmd:"" help:"show version"`
 
 	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
@@ -18,12 +20,6 @@ type CLI struct {
 
 type TestCmd struct {
 	CreateIfMissing bool `help:"create function if missing" default:"false"`
-}
-
-type InitCmd struct {
-	Name      string `help:"function name" required:"true"`
-	Format    string `help:"output event file format (json,jsonnet,yaml)" default:"json" enum:"jsonnet,json,yaml,yml"`
-	EventType string `help:"event type (viewer-request,viewer-response)" default:"viewer-request" enum:"viewer-request,viewer-response"`
 }
 
 type VersionCmd struct{}
@@ -64,10 +60,26 @@ func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
 		return app.TestFunction(ctx, cli.Test)
 	case "init":
 		return app.InitFunction(ctx, cli.Init)
+	case "diff":
+		return app.DiffFunction(ctx, cli.Diff)
 	case "version":
 		//
 	default:
 		return nil
 	}
 	return nil
+}
+
+func coloredDiff(src string) string {
+	var b strings.Builder
+	for _, line := range strings.Split(src, "\n") {
+		if strings.HasPrefix(line, "-") {
+			b.WriteString(color.RedString(line) + "\n")
+		} else if strings.HasPrefix(line, "+") {
+			b.WriteString(color.GreenString(line) + "\n")
+		} else {
+			b.WriteString(line + "\n")
+		}
+	}
+	return b.String()
 }

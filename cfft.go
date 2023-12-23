@@ -171,7 +171,8 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		return fmt.Errorf("failed to diff, %w", err)
 	}
 	if diff != "" {
-		return fmt.Errorf("expect and actual are not equal:\n%s", diff)
+		fmt.Print(coloredDiff(diff))
+		return fmt.Errorf("expect and actual are not equal")
 	} else {
 		log.Println("[info] expect and actual are equal")
 	}
