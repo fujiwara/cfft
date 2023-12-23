@@ -2,7 +2,7 @@
     "response": {
         "headers": {
             "cache-control": {
-                "value": "public, max-age=63072000"
+                "value": "public, max-age=6307200"
             }
         },
         "statusDescription": "OK",

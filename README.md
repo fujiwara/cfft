@@ -5,17 +5,15 @@ cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/Am
 ## Usage
 
 ```
-Usage: cfft <name> <function> <event> [<expect>]
+Usage: cfft test
 
-Arguments:
-  <name>        function name
-  <function>    function code file
-  <event>       event object file
-  [<expect>]    expect object file
+test function
 
 Flags:
-  -h, --help             Show context-sensitive help.
-  -i, --ignore=STRING    ignore fields in the expect object by jq syntax
+  -h, --help                  Show context-sensitive help.
+  -c, --config="cfft.yaml"    config file
+
+      --create-if-missing     create function if missing
 ```
 
 ## Example
@@ -23,6 +21,16 @@ Flags:
 ### Add Cache-Control header in viewer-response
 
 See [examples/add-cache-control](examples/add-cache-control) directory.
+
+```yaml
+# cfft.yaml
+name: my-function
+function: function.js
+testCases:
+  - name: add-cache-control
+    event: event.json
+    # expect: expect.json
+```
 
 ```js
 // function.js
@@ -32,6 +40,7 @@ async function handler(event) {
 
   // Set the cache-control header
   headers['cache-control'] = { value: 'public, max-age=63072000' };
+  console.log('[on the edge] Cache-Control header set.');
 
   // Return response to viewers
   return response;
@@ -65,12 +74,12 @@ event.json
 ```
 
 ```console
-$ cfft my-function function.js event.json
-2023/12/23 01:47:02 [info] loading function add-cache-control from function.js
-2023/12/23 01:47:03 [info] function add-cache-control found
-2023/12/23 01:47:04 [info] function code is not changed
-2023/12/23 01:47:04 [info] testing function add-cache-control with event:event.json expect: ignore:
-2023/12/23 01:47:04 [info] ComputeUtilization:27
+$ cfft test
+2023/12/23 15:09:04 [info] function my-function found
+2023/12/23 15:09:04 [info] function code is not changed
+2023/12/23 15:09:04 [info] testing function my-function with case add-cache-control...
+2023/12/23 15:09:05 [info] ComputeUtilization:30
+2023/12/23 15:09:05 [on the edge] Cache-Control header set.
 {
   "response": {
     "cookies": {},
@@ -87,23 +96,32 @@ $ cfft my-function function.js event.json
 
 cfft executes `my-function` with `event.json` at CloudFront Functions in development stage.
 
-- If my-function is not found, cfft create a new function with the name and runtime `cloudfront-js-2.0`.
+- If my-function is not found, `cfft test --create-if-missing` creates a new function with the name and runtime `cloudfront-js-2.0`.
 - If the function is found and the code is different from the `function.js`, cfft updates the function code.
 - Shows logs and compute utilization of the function after the execution.
 
 ### Compare the result with the expect object
 
-When you specify the expect object, cfft compares the result with the expect object.
+When you specify the `expect` element in test cases, cfft compares the result with the expect object.
+
+```yaml
+# cfft.yaml
+name: my-function
+function: function.js
+testCases:
+  - name: add-cache-control
+    event: event.json
+    expect: expect.json
+```
 
 If the result is different from the `expect.json`, cfft exits with a non-zero status code.
 
 ```console
-$ cfft my-function function.js event.json expect.json
-2023/12/23 01:54:14 [info] loading function add-cache-control from function.js
-2023/12/23 01:54:16 [info] function add-cache-control found
-2023/12/23 01:54:16 [info] function code is not changed
-2023/12/23 01:54:16 [info] testing function add-cache-control with event:event.json expect:expect.json ignore:
-2023/12/23 01:54:16 [info] ComputeUtilization:47
+2023/12/23 15:11:33 [info] function my-function found
+2023/12/23 15:11:33 [info] function code is not changed
+2023/12/23 15:11:33 [info] testing function my-function with case add-cache-control...
+2023/12/23 15:11:33 [info] ComputeUtilization:31
+2023/12/23 15:11:33 [on the edge] Cache-Control header set.
 {
   "response": {
     "cookies": {},
@@ -116,7 +134,18 @@ $ cfft my-function function.js event.json expect.json
     "statusDescription": "OK"
   }
 }
-2023/12/23 01:54:16 [info] expect and actual are equal
+2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal:
+--- expect
++++ actual
+@@ -3,7 +3,7 @@
+     "cookies": {},
+     "headers": {
+       "cache-control": {
+-        "value": "public, max-age=6307200"
++        "value": "public, max-age=63072000"
+       }
+     },
+     "statusCode": 200,
 ```
 
 expect.json
@@ -125,7 +154,7 @@ expect.json
     "response": {
         "headers": {
             "cache-control": {
-                "value": "public, max-age=63072000"
+                "value": "public, max-age=6307200"
             }
         },
         "statusDescription": "OK",
@@ -137,10 +166,17 @@ expect.json
 
 ### Ignore fields in the expect object
 
-If you want to ignore some fields in the expect object, you can use the `--ignore` (`-i`) option.
+If you want to ignore some fields in the expect object, you can use the `ignore` element in test cases.
 
-```console
-$ cfft my-function function.js event.json expect.json --ignore '.response.cookies, .response.headers.date'
+```yaml
+# cfft.yaml
+name: my-function
+function: function.js
+testCases:
+  - name: add-cache-control
+    event: event.json
+    expect: expect.json
+    ignore: ".response.cookies, .response.headers.date"
 ```
 
 The `.response.cookies` and `.response.headers.date` are ignored in the expect object.

@@ -2,57 +2,65 @@ package cfft
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"os"
+	"strings"
 
-	"github.com/itchyny/gojq"
+	"github.com/alecthomas/kong"
 )
 
 type CLI struct {
-	Name     string `arg:"" help:"function name"`
-	Function string `arg:"" help:"function code file"`
-	Event    string `arg:"" help:"event object file"`
-	Expect   string `arg:"" help:"expect object file" optional:"true"`
-	Ignore   string `short:"i" long:"ignore" help:"ignore fields in the expect object by jq syntax"`
+	Test    TestCmd    `cmd:"" help:"test function"`
+	Init    InitCmd    `cmd:"" help:"initialize function"`
+	Version VersionCmd `cmd:"" help:"show version"`
+
+	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
 }
 
-func (c *CLI) NewTestCase(ctx context.Context) (*TestCase, error) {
-	testCase := TestCase{
-		EventFile:  c.Event,
-		ExpectFile: c.Expect,
-		IgnoreStr:  c.Ignore,
-	}
-	log.Printf("[debug] NewTestCase: %#v", testCase)
+type TestCmd struct {
+	CreateIfMissing bool `long:"create-if-missing" help:"create function if missing" default:"false"`
+}
 
-	event, err := os.ReadFile(c.Event)
+type InitCmd struct{}
+
+type VersionCmd struct{}
+
+func RunCLI(ctx context.Context, args []string) error {
+	var cli CLI
+	parser, err := kong.New(&cli, kong.Vars{"version": Version})
 	if err != nil {
-		return nil, fmt.Errorf("failed to read event object, %w", err)
+		return err
 	}
-	var eventObject any
-	if err := json.Unmarshal(event, &eventObject); err != nil {
-		return nil, fmt.Errorf("failed to parse event object %s, %w", c.Event, err)
+	kctx, err := parser.Parse(args)
+	if err != nil {
+		return err
 	}
-	testCase.event = event
-
-	if c.Expect != "" {
-		expectBytes, err := os.ReadFile(c.Expect)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read expect object, %w", err)
-		}
-		if err := json.Unmarshal(expectBytes, &testCase.expect); err != nil {
-			return nil, fmt.Errorf("failed to parse expect object, %w", err)
-		}
+	cmd := strings.Fields(kctx.Command())[0]
+	if cmd == "version" {
+		fmt.Println("cfft version", Version)
+		return nil
 	}
 
-	if c.Ignore != "" {
-		q, err := gojq.Parse(c.Ignore)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse ignore query, %w", err)
-		}
-		testCase.ignore = q
+	config, err := LoadConfig(ctx, cli.Config)
+	if err != nil {
+		return err
 	}
+	app, err := New(ctx, config)
+	if err != nil {
+		return err
+	}
+	return app.Dispatch(ctx, cmd, &cli)
+}
 
-	return &testCase, nil
+func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
+	switch cmd {
+	case "test":
+		return app.TestFunction(ctx, cli.Test.CreateIfMissing)
+	case "init":
+		panic("not implemented")
+	case "version":
+		//
+	default:
+		return nil
+	}
+	return nil
 }
