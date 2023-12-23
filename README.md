@@ -179,7 +179,6 @@ If the result is different from the `expect.json`, cfft exits with a non-zero st
     "statusDescription": "OK"
   }
 }
-2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal:
 --- expect
 +++ actual
 @@ -3,7 +3,7 @@
@@ -191,6 +190,8 @@ If the result is different from the `expect.json`, cfft exits with a non-zero st
        }
      },
      "statusCode": 200,
+
+2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal
 ```
 
 expect.json
