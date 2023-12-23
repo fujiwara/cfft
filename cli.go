@@ -10,7 +10,7 @@ import (
 
 type CLI struct {
 	Test    TestCmd    `cmd:"" help:"test function"`
-	Init    InitCmd    `cmd:"" help:"initialize function"`
+	Init    InitCmd    `cmd:"" help:"initialize files"`
 	Version VersionCmd `cmd:"" help:"show version"`
 
 	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`

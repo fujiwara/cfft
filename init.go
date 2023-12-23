@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 
@@ -72,7 +73,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 
 	// create function file
 	log.Printf("[info] creating function file function.js")
-	if err := os.WriteFile("function.js", code, 0644); err != nil {
+	if err := WriteFile("function.js", code, 0644); err != nil {
 		return fmt.Errorf("failed to write file, %w", err)
 	}
 
@@ -91,7 +92,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 		return fmt.Errorf("failed to marshal yaml, %w", err)
 	} else {
 		log.Printf("[info] creating config file cfft.yaml")
-		if err := os.WriteFile("cfft.yaml", b, 0644); err != nil {
+		if err := WriteFile("cfft.yaml", b, 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
 	}
@@ -104,11 +105,11 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 		if err != nil {
 			return fmt.Errorf("failed to format jsonnet, %w", err)
 		}
-		if err := os.WriteFile("event.jsonnet", []byte(out), 0644); err != nil {
+		if err := WriteFile("event.jsonnet", []byte(out), 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
 	case "json":
-		if err := os.WriteFile("event.json", DefaultEvent(opt.EventType), 0644); err != nil {
+		if err := WriteFile("event.json", DefaultEvent(opt.EventType), 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
 	case "yaml", "yml":
@@ -120,7 +121,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal yaml, %w", err)
 		}
-		if err := os.WriteFile("event."+opt.Format, b, 0644); err != nil {
+		if err := WriteFile("event."+opt.Format, b, 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
 	default:
@@ -129,4 +130,18 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 
 	log.Println("[info] done")
 	return nil
+}
+
+func WriteFile(path string, b []byte, perm fs.FileMode) error {
+	if _, err := os.Stat(path); err == nil {
+		fmt.Printf("file %s already exists. overwrite? [y/N] ", path)
+		var yesno string
+		if _, err := fmt.Scanln(&yesno); err != nil {
+			return nil
+		}
+		if yesno != "y" {
+			return nil
+		}
+	}
+	return os.WriteFile(path, b, perm)
 }

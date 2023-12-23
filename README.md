@@ -22,9 +22,9 @@ Commands:
     show version
 ```
 
-### Example of initializing CloudFront Functions
+### Example of initializing files for testing CloudFront Functions
 
-`cfft init` creates a config file and a function file and example event file.
+`cfft init` creates a config file and a function file and an example event file.
 
 ```
 Usage: cfft init --name=STRING

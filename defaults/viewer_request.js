@@ -1,5 +1,5 @@
 async function handler(event) {
   const request = event.request;
-  console.log('hello cfft');
+  console.log('on the edge');
   return request;
 }
