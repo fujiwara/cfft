@@ -16,7 +16,10 @@ Commands:
     test function
 
   init --name=STRING
-    initialize function
+    initialize files
+
+  diff
+    diff function code
 
   version
     show version
@@ -242,6 +245,24 @@ cfft supports the following file extensions.
 - .jsonnet
 - .yaml
 - .yml
+
+### Diff function code
+
+`cfft diff` compares the function code with the code in the CloudFront Functions.
+
+```console
+$ cfft diff
+2023/12/23 17:57:17 [info] function cfft found
+--- E3UN6WX5RRO2AG
++++ function.js
+@@ -1,5 +1,5 @@
+ async function handler(event) {
+   const request = event.request;
+-  console.log('hello cfft world');
++  console.log('hello cfft');
+   return request;
+ }
+```
 
 
 ## LICENSE
