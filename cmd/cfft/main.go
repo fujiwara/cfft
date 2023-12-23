@@ -6,8 +6,10 @@ import (
 	"os"
 	"os/signal"
 
-	app "github.com/fujiwara/cfft"
+	"github.com/fujiwara/cfft"
 )
+
+var Version = "dev"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -19,5 +21,6 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	return app.RunCLI(ctx, os.Args[1:])
+	cfft.Version = Version
+	return cfft.RunCLI(ctx, os.Args[1:])
 }

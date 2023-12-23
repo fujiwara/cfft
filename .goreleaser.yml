@@ -6,6 +6,9 @@ builds:
       - CGO_ENABLED=0
     main: cmd/cfft/main.go
     binary: cfft
+    ldflags:
+      - -s -w
+      - -X main.Version=v{{.Version}}
     goos:
       - linux
       - darwin
