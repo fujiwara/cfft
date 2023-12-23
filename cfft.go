@@ -45,11 +45,11 @@ func (c *TestCase) Identifier() string {
 	return fmt.Sprintf("[%d]", c.id)
 }
 
-func (c *TestCase) Setup(ctx context.Context) error {
+func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, error)) error {
 	var event any
 	if err := json.Unmarshal([]byte(c.Event), &event); err != nil {
 		// event is not JSON string
-		eventBytes, err := os.ReadFile(c.Event)
+		eventBytes, err := readFile(c.Event)
 		if err != nil {
 			return fmt.Errorf("failed to read event object, %w", err)
 		}
@@ -66,7 +66,7 @@ func (c *TestCase) Setup(ctx context.Context) error {
 		var expect any
 		if err := json.Unmarshal([]byte(c.Expect), &expect); err != nil {
 			// expect is not JSON string
-			expectBytes, err := os.ReadFile(c.Expect)
+			expectBytes, err := readFile(c.Expect)
 			if err != nil {
 				return fmt.Errorf("failed to read expect object, %w", err)
 			}
