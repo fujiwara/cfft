@@ -14,7 +14,6 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
-	"github.com/itchyny/gojq"
 )
 
 var Stage = types.FunctionStageDevelopment
@@ -24,69 +23,6 @@ var Version = "dev"
 type CFFT struct {
 	config     *Config
 	cloudfront *cloudfront.Client
-}
-
-type TestCase struct {
-	Name   string `json:"name" yaml:"name"`
-	Event  string `json:"event" yaml:"event"`
-	Expect string `json:"expect" yaml:"expect"`
-	Ignore string `json:"ignore" yaml:"ignore"`
-
-	id     int
-	event  []byte
-	expect any
-	ignore *gojq.Query
-}
-
-func (c *TestCase) Identifier() string {
-	if c.Name != "" {
-		return c.Name
-	}
-	return fmt.Sprintf("[%d]", c.id)
-}
-
-func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, error)) error {
-	var event any
-	if err := json.Unmarshal([]byte(c.Event), &event); err != nil {
-		// event is not JSON string
-		eventBytes, err := readFile(c.Event)
-		if err != nil {
-			return fmt.Errorf("failed to read event object, %w", err)
-		}
-		c.event = eventBytes
-	} else {
-		c.event = []byte(c.Event)
-	}
-	if len(c.event) == 0 {
-		return errors.New("event is empty")
-	}
-
-	if len(c.Expect) > 0 {
-		// expect is optional
-		var expect any
-		if err := json.Unmarshal([]byte(c.Expect), &expect); err != nil {
-			// expect is not JSON string
-			expectBytes, err := readFile(c.Expect)
-			if err != nil {
-				return fmt.Errorf("failed to read expect object, %w", err)
-			}
-			if err := json.Unmarshal(expectBytes, &c.expect); err != nil {
-				return fmt.Errorf("failed to parse expect object, %w", err)
-			}
-		} else {
-			c.expect = []byte(c.Expect)
-		}
-	}
-
-	if len(c.Ignore) > 0 {
-		// ignore is optional
-		q, err := gojq.Parse(c.Ignore)
-		if err != nil {
-			return fmt.Errorf("failed to parse ignore query, %w", err)
-		}
-		c.ignore = q
-	}
-	return nil
 }
 
 func New(ctx context.Context, config *Config) (*CFFT, error) {

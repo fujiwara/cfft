@@ -20,19 +20,18 @@ type Config struct {
 	dir          string
 }
 
-// ReadFile reads file from the same directory as config file.
 // ReadFile supports jsonnet and yaml files. If the file is jsonnet or yaml, it will be evaluated and converted to json.
-func (c *Config) ReadFile(p string) ([]byte, error) {
+func ReadFile(p string) ([]byte, error) {
 	switch filepath.Ext(p) {
 	case ".json", ".jsonnet":
 		vm := jsonnet.MakeVM()
-		s, err := vm.EvaluateFile(filepath.Join(c.dir, p))
+		s, err := vm.EvaluateFile(p)
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", p, err)
 		}
 		return []byte(s), nil
 	case ".yaml", ".yml":
-		b, err := os.ReadFile(filepath.Join(c.dir, p))
+		b, err := os.ReadFile(p)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read file %s, %w", p, err)
 		}
@@ -43,7 +42,12 @@ func (c *Config) ReadFile(p string) ([]byte, error) {
 		return json.Marshal(v)
 	}
 	// other files are treated as plain text
-	return os.ReadFile(filepath.Join(c.dir, p))
+	return os.ReadFile(p)
+}
+
+// ReadFile reads file from the same directory as config file.
+func (c *Config) ReadFile(p string) ([]byte, error) {
+	return ReadFile(filepath.Join(c.dir, p))
 }
 
 func LoadConfig(ctx context.Context, path string) (*Config, error) {
