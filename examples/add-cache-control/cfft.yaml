@@ -1,0 +1,7 @@
+# cfft.yaml
+name: my-function
+function: function.js
+testCases:
+  - name: add-cache-control
+    event: event.json
+    expect: expect.json

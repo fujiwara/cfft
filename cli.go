@@ -17,7 +17,7 @@ type CLI struct {
 }
 
 type TestCmd struct {
-	CreateIfMissing bool `short:"c" long:"create-if-missing" help:"create function if missing" default:"false"`
+	CreateIfMissing bool `long:"create-if-missing" help:"create function if missing" default:"false"`
 }
 
 type InitCmd struct{}
