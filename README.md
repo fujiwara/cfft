@@ -29,7 +29,6 @@ function: function.js
 testCases:
   - name: add-cache-control
     event: event.json
-    # expect: expect.json
 ```
 
 ```js
@@ -180,6 +179,26 @@ testCases:
 ```
 
 The `.response.cookies` and `.response.headers.date` are ignored in the expect object.
+
+### Event and Expect file format
+
+The event and expect file format is JSON, Jsonnet or YAML.
+
+```yaml
+# cfft.yaml
+name: my-function
+function: function.js
+testCases:
+  - name: add-cache-control
+    event: event.jsonnet
+    expect: expect.yaml
+```
+
+cfft supports the following file extensions.
+- .json
+- .jsonnet
+- .yaml
+- .yml
 
 
 ## LICENSE
