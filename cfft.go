@@ -37,8 +37,8 @@ func New(ctx context.Context, config *Config) (*CFFT, error) {
 	return app, nil
 }
 
-func (app *CFFT) TestFunction(ctx context.Context, creaetIfMissing bool) error {
-	etag, err := app.prepareFunction(ctx, app.config.Name, app.config.functionCode, creaetIfMissing)
+func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
+	etag, err := app.prepareFunction(ctx, app.config.Name, app.config.functionCode, opt.CreateIfMissing)
 	if err != nil {
 		return fmt.Errorf("failed to prepare function, %w", err)
 	}
@@ -81,14 +81,14 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 		if errors.Is(err, &notFound) {
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		}
-		if !createIfMissing {
+		if createIfMissing {
 			log.Printf("[info] function %s not found", name)
 			etag, err = app.createFunction(ctx, name, code)
 			if err != nil {
 				return "", fmt.Errorf("failed to create function, %w", err)
 			}
 		} else {
-			return "", fmt.Errorf("function %s not found", name)
+			return "", fmt.Errorf("function %s not found. To create a new function, add --create-if-missing flag", name)
 		}
 	} else {
 		log.Printf("[info] function %s found", name)

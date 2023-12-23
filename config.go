@@ -52,30 +52,12 @@ func (c *Config) ReadFile(p string) ([]byte, error) {
 
 func LoadConfig(ctx context.Context, path string) (*Config, error) {
 	config := &Config{}
-	b, err := os.ReadFile(path)
+	b, err := ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s, %w", path, err)
 	}
-	switch filepath.Ext(path) {
-	case ".json":
-		if err := json.Unmarshal(b, config); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s, %w", path, err)
-		}
-	case ".jsonnet":
-		vm := jsonnet.MakeVM()
-		s, err := vm.EvaluateFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", path, err)
-		}
-		if err := json.Unmarshal([]byte(s), config); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s, %w", path, err)
-		}
-	case ".yaml", ".yml":
-		if err := yaml.Unmarshal(b, config); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s, %w", path, err)
-		}
-	default:
-		return nil, fmt.Errorf("unsupported config file format %s", path)
+	if err := json.Unmarshal(b, config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file %s, %w", path, err)
 	}
 	config.dir = filepath.Dir(path)
 

@@ -17,10 +17,14 @@ type CLI struct {
 }
 
 type TestCmd struct {
-	CreateIfMissing bool `long:"create-if-missing" help:"create function if missing" default:"false"`
+	CreateIfMissing bool `help:"create function if missing" default:"false"`
 }
 
-type InitCmd struct{}
+type InitCmd struct {
+	Name      string `help:"function name" required:"true"`
+	Format    string `help:"output event file format" default:"json" enum:"jsonnet,json,yaml,yml"`
+	EventType string `help:"event type" default:"viewer-request" enum:"viewer-request,viewer-response"`
+}
 
 type VersionCmd struct{}
 
@@ -40,9 +44,12 @@ func RunCLI(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	config, err := LoadConfig(ctx, cli.Config)
-	if err != nil {
-		return err
+	var config *Config
+	if cmd != "init" {
+		config, err = LoadConfig(ctx, cli.Config)
+		if err != nil {
+			return err
+		}
 	}
 	app, err := New(ctx, config)
 	if err != nil {
@@ -54,9 +61,9 @@ func RunCLI(ctx context.Context, args []string) error {
 func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
 	switch cmd {
 	case "test":
-		return app.TestFunction(ctx, cli.Test.CreateIfMissing)
+		return app.TestFunction(ctx, cli.Test)
 	case "init":
-		panic("not implemented")
+		return app.InitFunction(ctx, cli.Init)
 	case "version":
 		//
 	default:
