@@ -22,8 +22,8 @@ type TestCmd struct {
 
 type InitCmd struct {
 	Name      string `help:"function name" required:"true"`
-	Format    string `help:"output event file format" default:"json" enum:"jsonnet,json,yaml,yml"`
-	EventType string `help:"event type" default:"viewer-request" enum:"viewer-request,viewer-response"`
+	Format    string `help:"output event file format (json,jsonnet,yaml)" default:"json" enum:"jsonnet,json,yaml,yml"`
+	EventType string `help:"event type (viewer-request,viewer-response)" default:"viewer-request" enum:"viewer-request,viewer-response"`
 }
 
 type VersionCmd struct{}

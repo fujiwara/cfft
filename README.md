@@ -5,6 +5,51 @@ cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/Am
 ## Usage
 
 ```
+Usage: cfft <command>
+
+Flags:
+  -h, --help                  Show context-sensitive help.
+  -c, --config="cfft.yaml"    config file
+
+Commands:
+  test
+    test function
+
+  init --name=STRING
+    initialize function
+
+  version
+    show version
+```
+
+### Example of initializing CloudFront Functions
+
+`cfft init` creates a config file and a function file and example event file.
+
+```
+Usage: cfft init --name=STRING
+
+initialize function
+
+Flags:
+  -h, --help                           Show context-sensitive help.
+  -c, --config="cfft.yaml"             config file
+
+      --name=STRING                    function name
+      --format="json"                  output event file format (json,jsonnet,yaml)
+      --event-type="viewer-request"    event type (viewer-request,viewer-response)
+```
+
+If the function is already exists in the CloudFront Functions, cfft downloads the function code and creates a config file.
+
+If the function is not found, cfft creates a new config file and a function file and example event file. You can edit the function file and event file and test the function with `cfft test --create-if-missing`.
+
+
+## Example of testing CloudFront Functions
+
+`cfft test` executes CloudFront Functions in the DEVELOPMENT stage and compares the result with the expect object if specified.
+
+```
 Usage: cfft test
 
 test function
@@ -15,8 +60,6 @@ Flags:
 
       --create-if-missing     create function if missing
 ```
-
-## Example
 
 ### Add Cache-Control header in viewer-response
 
