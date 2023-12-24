@@ -21,8 +21,13 @@ Commands:
   diff
     diff function code
 
+  publish
+    publish function
+
   version
     show version
+
+Run "cfft <command> --help" for more information on a command.
 ```
 
 ### Example of initializing files for testing CloudFront Functions
@@ -264,6 +269,18 @@ $ cfft diff
    return request;
  }
 ```
+
+### Publish function
+
+`cfft publish` publishes the function to the CloudFront Functions.
+
+```console
+$ cfft publish
+```
+
+`cfft publish` fails if the local function code differs from the CloudFront Functions code.
+
+Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
 
 
 ## LICENSE

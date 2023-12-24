@@ -13,6 +13,7 @@ type CLI struct {
 	Test    TestCmd    `cmd:"" help:"test function"`
 	Init    InitCmd    `cmd:"" help:"initialize files"`
 	Diff    DiffCmd    `cmd:"" help:"diff function code"`
+	Publish PublishCmd `cmd:"" help:"publish function"`
 	Version VersionCmd `cmd:"" help:"show version"`
 
 	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
@@ -62,6 +63,8 @@ func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
 		return app.InitFunction(ctx, cli.Init)
 	case "diff":
 		return app.DiffFunction(ctx, cli.Diff)
+	case "publish":
+		return app.PublishFunction(ctx, cli.Publish)
 	case "version":
 		//
 	default:

@@ -77,8 +77,8 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 		Stage: Stage,
 	})
 	if err != nil {
-		var notFound types.EntityNotFound
-		if errors.Is(err, &notFound) {
+		var notFound *types.EntityNotFound
+		if !errors.As(err, &notFound) {
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		}
 		if createIfMissing {

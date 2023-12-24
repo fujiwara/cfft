@@ -66,8 +66,8 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 		Stage: Stage,
 	})
 	if err != nil {
-		var notFound types.EntityNotFound
-		if errors.Is(err, &notFound) {
+		var notFound *types.NoSuchFunctionExists
+		if !errors.As(err, &notFound) {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
 		log.Printf("[info] function %s not found. using default code for %s", name, opt.EventType)
