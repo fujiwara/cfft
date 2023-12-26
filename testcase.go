@@ -5,15 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/itchyny/gojq"
 )
 
 type TestCase struct {
-	Name   string `json:"name" yaml:"name"`
-	Event  string `json:"event" yaml:"event"`
-	Expect string `json:"expect" yaml:"expect"`
-	Ignore string `json:"ignore" yaml:"ignore"`
+	Name   string            `json:"name" yaml:"name"`
+	Event  string            `json:"event" yaml:"event"`
+	Expect string            `json:"expect" yaml:"expect"`
+	Ignore string            `json:"ignore" yaml:"ignore"`
+	Env    map[string]string `json:"env" yaml:"env"`
 
 	id     int
 	event  []byte
@@ -29,6 +32,11 @@ func (c *TestCase) Identifier() string {
 }
 
 func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, error)) error {
+	for k, v := range c.Env {
+		df := localEnv(k, v)
+		defer df()
+	}
+
 	eventBytes, err := readFile(c.Event)
 	if err != nil {
 		return fmt.Errorf("failed to read event object, %w", err)
@@ -59,4 +67,22 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 		c.ignore = q
 	}
 	return nil
+}
+
+func localEnv(key, value string) func() {
+	prevValue, ok := os.LookupEnv(key)
+
+	if err := os.Setenv(key, value); err != nil {
+		log.Fatalf("cannot set environment variable: %v", err)
+	}
+
+	if ok {
+		return func() {
+			os.Setenv(key, prevValue)
+		}
+	} else {
+		return func() {
+			os.Unsetenv(key)
+		}
+	}
 }

@@ -300,6 +300,64 @@ If the environment variable `FOO` is not set, cfft exits with a non-zero status 
 
 See [examples/true-client-ip](examples/true-client-ip) directory to see how to use the template syntax.
 
+```yaml
+testCases:
+  - name: localhost
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 127.0.0.1
+      HOSTNAME: localhost
+  - name: home
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 192.168.1.1
+      HOSTNAME: home
+```
+
+In `testCases`, `env` overrides the environment variables. These values are used in `event.json` and `expect.json`.
+
+event.json
+```json
+{
+    "version": "1.0",
+    "context": {
+        "eventType": "viewer-request"
+    },
+    "viewer": {
+        "ip": "{{ env `IP` `127.0.0.2` }}"
+    },
+    "request": {
+        "method": "GET",
+        "uri": "/index.html",
+        "headers": {},
+        "cookies": {},
+        "querystring": {}
+    }
+}
+```
+
+expect.json
+```json
+{
+    "request": {
+        "cookies": {},
+        "headers": {
+            "true-client-ip": {
+                "value": "{{ env `IP` `127.0.0.2` }}"
+            },
+            "x-hostname": {
+                "value": "{{ env `HOSTNAME` `unknown` }}"
+            }
+        },
+        "method": "GET",
+        "querystring": {},
+        "uri": "/index.html"
+    }
+}
+```
+
 ## LICENSE
 
 MIT
