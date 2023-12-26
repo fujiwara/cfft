@@ -298,6 +298,8 @@ If the environment variable `FOO` is not set, cfft exits with a non-zero status 
 {{ env `BAR` `default_of_BAR` }}
 ```
 
+See [examples/true-client-ip](examples/true-client-ip) directory to see how to use the template syntax.
+
 ## LICENSE
 
 MIT

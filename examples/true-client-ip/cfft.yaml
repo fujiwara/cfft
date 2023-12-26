@@ -1,4 +1,4 @@
-name: set-viwer-ip
+name: "{{ env `NAME` `true-client-ip` }}"
 function: function.js
 testCases:
   - name: default
