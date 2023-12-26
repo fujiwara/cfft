@@ -1,0 +1,13 @@
+{
+    "request": {
+        "cookies": {},
+        "headers": {
+            "true-client-ip": {
+                "value": "{{ env `IP` `127.0.0.2` }}"
+            }
+        },
+        "method": "GET",
+        "querystring": {},
+        "uri": "/index.html"
+    }
+}

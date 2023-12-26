@@ -1,0 +1,6 @@
+name: set-viwer-ip
+function: function.js
+testCases:
+  - name: default
+    event: event.json
+    expect: expect.json
