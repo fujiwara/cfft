@@ -282,6 +282,21 @@ $ cfft publish
 
 Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
 
+## Template syntax
+
+cfft read files (config, function, event, and expect) with the following template syntax by [kayac/go-config](https://github.com/kayac/go-config).
+
+`must_env` function renders the environment variable value.
+
+```
+{{ must_env `FOO` }}
+```
+
+If the environment variable `FOO` is not set, cfft exits with a non-zero status code. You can use `env` function to set a default value.
+
+```
+{{ env `BAR` `default_of_BAR` }}
+```
 
 ## LICENSE
 
