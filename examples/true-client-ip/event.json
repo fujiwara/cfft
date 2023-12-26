@@ -1,0 +1,16 @@
+{
+    "version": "1.0",
+    "context": {
+        "eventType": "viewer-request"
+    },
+    "viewer": {
+        "ip": "{{ env `IP` `127.0.0.2` }}"
+    },
+    "request": {
+        "method": "GET",
+        "uri": "/index.html",
+        "headers": {},
+        "cookies": {},
+        "querystring": {}
+    }
+}

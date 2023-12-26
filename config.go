@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-jsonnet"
+	goconfig "github.com/kayac/go-config"
 )
 
 type Config struct {
@@ -22,27 +22,27 @@ type Config struct {
 
 // ReadFile supports jsonnet and yaml files. If the file is jsonnet or yaml, it will be evaluated and converted to json.
 func ReadFile(p string) ([]byte, error) {
+	b, err := goconfig.ReadWithEnv(p)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s, %w", p, err)
+	}
 	switch filepath.Ext(p) {
 	case ".json", ".jsonnet":
 		vm := jsonnet.MakeVM()
-		s, err := vm.EvaluateFile(p)
+		s, err := vm.EvaluateAnonymousSnippet(p, string(b))
 		if err != nil {
 			return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", p, err)
 		}
 		return []byte(s), nil
 	case ".yaml", ".yml":
-		b, err := os.ReadFile(p)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s, %w", p, err)
-		}
 		var v any
 		if err := yaml.Unmarshal(b, &v); err != nil {
 			return nil, fmt.Errorf("failed to parse yaml %s, %w", p, err)
 		}
 		return json.Marshal(v)
 	}
-	// other files are treated as plain text
-	return os.ReadFile(p)
+	// otherwise, return as is
+	return b, nil
 }
 
 // ReadFile reads file from the same directory as config file.
