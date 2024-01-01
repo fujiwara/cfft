@@ -24,6 +24,21 @@ Commands:
   publish
     publish function
 
+  kvs list
+    list key values
+
+  kvs get <key>
+    get value of key
+
+  kvs put <key> <value>
+    put value of key
+
+  kvs delete <key>
+    delete key
+
+  kvs info
+    show info of key value store
+
   version
     show version
 
