@@ -267,24 +267,6 @@ cfft supports the following file extensions.
 - .yaml
 - .yml
 
-### Diff function code
-
-`cfft diff` compares the function code with the code in the CloudFront Functions.
-
-```console
-$ cfft diff
-2023/12/23 17:57:17 [info] function cfft found
---- E3UN6WX5RRO2AG
-+++ function.js
-@@ -1,5 +1,5 @@
- async function handler(event) {
-   const request = event.request;
--  console.log('hello cfft world');
-+  console.log('hello cfft');
-   return request;
- }
-```
-
 ### Use CloudFront KeyValueStore
 
 cfft supports [CloudFront KeyVakueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
@@ -326,6 +308,24 @@ async function handler(event) {
 - `cfft kvs put <key> <value>` puts the value of the key.
 - `cfft kvs delete <key>` deletes the key.
 - `cfft kvs info` shows the information of the KeyValueStore.
+
+### Diff function code
+
+`cfft diff` compares the function code with the code in the CloudFront Functions.
+
+```console
+$ cfft diff
+2023/12/23 17:57:17 [info] function cfft found
+--- E3UN6WX5RRO2AG
++++ function.js
+@@ -1,5 +1,5 @@
+ async function handler(event) {
+   const request = event.request;
+-  console.log('hello cfft world');
++  console.log('hello cfft');
+   return request;
+ }
+```
 
 ### Publish function
 

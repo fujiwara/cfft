@@ -47,7 +47,7 @@ func New(ctx context.Context, config *Config) (*CFFT, error) {
 }
 
 func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
-	if app.config.KVS == nil {
+	if app.config == nil || app.config.KVS == nil {
 		return nil
 	}
 	name := app.config.KVS.Name
