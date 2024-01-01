@@ -57,6 +57,10 @@ func RunCLI(ctx context.Context, args []string) error {
 }
 
 func (app *CFFT) Dispatch(ctx context.Context, cmds []string, cli *CLI) error {
+	if err := app.prepareKVS(ctx, cli.Test.CreateIfMissing); err != nil {
+		return err
+	}
+
 	for k, v := range app.envs {
 		reset := localEnv(k, v)
 		defer reset()
