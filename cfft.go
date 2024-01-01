@@ -34,7 +34,9 @@ func New(ctx context.Context, config *Config) (*CFFT, error) {
 		config: config,
 		envs:   map[string]string{},
 	}
-	awscfg, err := awsConfig.LoadDefaultConfig(ctx)
+
+	// CloudFront region is fixed to us-east-1
+	awscfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithRegion("us-east-1"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws config, %w", err)
 	}
