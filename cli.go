@@ -14,6 +14,7 @@ type CLI struct {
 	Init    InitCmd    `cmd:"" help:"initialize files"`
 	Diff    DiffCmd    `cmd:"" help:"diff function code"`
 	Publish PublishCmd `cmd:"" help:"publish function"`
+	KVS     KVSCmd     `cmd:"" help:"manage key-value store"`
 	Version VersionCmd `cmd:"" help:"show version"`
 
 	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
@@ -35,14 +36,14 @@ func RunCLI(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	cmd := strings.Fields(kctx.Command())[0]
-	if cmd == "version" {
+	cmds := strings.Fields(kctx.Command())
+	if cmds[0] == "version" {
 		fmt.Println("cfft version", Version)
 		return nil
 	}
 
 	var config *Config
-	if cmd != "init" {
+	if cmds[0] != "init" {
 		config, err = LoadConfig(ctx, cli.Config)
 		if err != nil {
 			return err
@@ -52,11 +53,20 @@ func RunCLI(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	return app.Dispatch(ctx, cmd, &cli)
+	return app.Dispatch(ctx, cmds, &cli)
 }
 
-func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
-	switch cmd {
+func (app *CFFT) Dispatch(ctx context.Context, cmds []string, cli *CLI) error {
+	if err := app.prepareKVS(ctx, cli.Test.CreateIfMissing); err != nil {
+		return err
+	}
+
+	for k, v := range app.envs {
+		reset := localEnv(k, v)
+		defer reset()
+	}
+
+	switch cmds[0] {
 	case "test":
 		return app.TestFunction(ctx, cli.Test)
 	case "init":
@@ -65,6 +75,8 @@ func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
 		return app.DiffFunction(ctx, cli.Diff)
 	case "publish":
 		return app.PublishFunction(ctx, cli.Publish)
+	case "kvs":
+		return app.ManageKVS(ctx, cmds[1], cli.KVS)
 	case "version":
 		//
 	default:

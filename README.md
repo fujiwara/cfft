@@ -24,6 +24,21 @@ Commands:
   publish
     publish function
 
+  kvs list
+    list key values
+
+  kvs get <key>
+    get value of key
+
+  kvs put <key> <value>
+    put value of key
+
+  kvs delete <key>
+    delete key
+
+  kvs info
+    show info of key value store
+
   version
     show version
 
@@ -251,6 +266,48 @@ cfft supports the following file extensions.
 - .jsonnet
 - .yaml
 - .yml
+
+### Use CloudFront KeyValueStore
+
+cfft supports [CloudFront KeyVakueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+
+```yaml
+# cfft.yaml
+name: function-with-kvs
+function: function.js
+kvs:
+  name: hostnames
+```
+
+If you specify the `kvs` element in the config file, cfft creates a KeyValueStore with the name, if not exsites, and associates the KeyValueStore with the function. You can use the KeyValueStore in the function code.
+
+In a function code, the KVS id is available in the `KVS_ID` environment variable.
+
+```js
+import cf from 'cloudfront';
+
+const kvsId = "{{ must_env `KVS_ID` }}";
+const kvsHandle = cf.kvs(kvsId);
+
+async function handler(event) {
+  const request = event.request;
+  const clientIP = event.viewer.ip;
+  const hostname = (await kvsHandle.exists(clientIP)) ? await kvsHandle.get(clientIP) : 'unknown';
+
+  request.headers['x-hostname'] = { value: hostname };
+  return request;
+}
+```
+
+#### Manage KVS key values with `cfft kvs` command
+
+`cfft kvs` command manages KVS key values.
+
+- `cfft kvs list` lists all key values.
+- `cfft kvs get <key>` gets the value of the key.
+- `cfft kvs put <key> <value>` puts the value of the key.
+- `cfft kvs delete <key>` deletes the key.
+- `cfft kvs info` shows the information of the KeyValueStore.
 
 ### Diff function code
 

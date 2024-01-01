@@ -14,6 +14,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfrontkeyvaluestore"
 )
 
 var Stage = types.FunctionStageDevelopment
@@ -23,22 +24,71 @@ var Version = "dev"
 type CFFT struct {
 	config     *Config
 	cloudfront *cloudfront.Client
+	cfkvs      *cloudfrontkeyvaluestore.Client
+	cfkvsArn   string
+	envs       map[string]string
 }
 
 func New(ctx context.Context, config *Config) (*CFFT, error) {
 	app := &CFFT{
 		config: config,
+		envs:   map[string]string{},
 	}
-	awscfg, err := awsConfig.LoadDefaultConfig(ctx)
+
+	// CloudFront region is fixed to us-east-1
+	awscfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithRegion("us-east-1"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws config, %w", err)
 	}
 	app.cloudfront = cloudfront.NewFromConfig(awscfg)
+	app.cfkvs = cloudfrontkeyvaluestore.NewFromConfig(awscfg)
+
 	return app, nil
 }
 
+func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
+	if app.config == nil || app.config.KVS == nil {
+		return nil
+	}
+	name := app.config.KVS.Name
+	res, err := app.cloudfront.DescribeKeyValueStore(ctx, &cloudfront.DescribeKeyValueStoreInput{
+		Name: aws.String(name),
+	})
+	if err == nil { // found
+		log.Printf("[info] kvs %s found", app.config.KVS.Name)
+		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
+		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
+		app.cfkvsArn = aws.ToString(res.KeyValueStore.ARN)
+		return nil
+	}
+	// not found
+	if !create {
+		return fmt.Errorf("kvs %s not found. To create a new kvs, add --create-if-missing flag", name)
+	}
+
+	// create
+	log.Printf("[info] kvs %s not found, creating...", name)
+	if res, err := app.cloudfront.CreateKeyValueStore(ctx, &cloudfront.CreateKeyValueStoreInput{
+		Name:    aws.String(name),
+		Comment: aws.String("created by cfft"),
+	}); err != nil {
+		return fmt.Errorf("failed to create kvs %s, %w", name, err)
+	} else {
+		app.cfkvsArn = aws.ToString(res.KeyValueStore.ARN)
+		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
+		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
+	}
+	log.Printf("[info] kvs %s created", name)
+
+	return nil
+}
+
 func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
-	etag, err := app.prepareFunction(ctx, app.config.Name, app.config.functionCode, opt.CreateIfMissing)
+	code, err := app.config.FunctionCode()
+	if err != nil {
+		return fmt.Errorf("failed to load function code, %w", err)
+	}
+	etag, err := app.prepareFunction(ctx, app.config.Name, code, opt.CreateIfMissing)
 	if err != nil {
 		return fmt.Errorf("failed to prepare function, %w", err)
 	}
@@ -59,6 +109,12 @@ func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (
 		FunctionConfig: &types.FunctionConfig{
 			Comment: aws.String("created by cfft"),
 			Runtime: types.FunctionRuntimeCloudfrontJs20,
+			KeyValueStoreAssociations: &types.KeyValueStoreAssociations{
+				Quantity: aws.Int32(1),
+				Items: []types.KeyValueStoreAssociation{
+					{KeyValueStoreARN: aws.String(app.cfkvsArn)},
+				},
+			},
 		},
 	})
 	if err != nil {
@@ -93,6 +149,34 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 	} else {
 		log.Printf("[info] function %s found", name)
 		functionConfig = res.FunctionSummary.FunctionConfig
+
+		var associated bool
+		log.Println("[info] kvsArn:", app.cfkvsArn)
+		if functionConfig.KeyValueStoreAssociations != nil {
+			for _, association := range functionConfig.KeyValueStoreAssociations.Items {
+				log.Println("[info] associated kvs:", aws.ToString(association.KeyValueStoreARN))
+				if aws.ToString(association.KeyValueStoreARN) == app.cfkvsArn {
+					associated = true
+				}
+			}
+		} else {
+			functionConfig.KeyValueStoreAssociations = &types.KeyValueStoreAssociations{
+				Quantity: aws.Int32(0),
+				Items:    []types.KeyValueStoreAssociation{},
+			}
+		}
+		if !associated {
+			log.Printf("[info] associating kvs %s to function %s...", app.config.KVS.Name, name)
+			functionConfig.KeyValueStoreAssociations.Items =
+				append(
+					functionConfig.KeyValueStoreAssociations.Items,
+					types.KeyValueStoreAssociation{
+						KeyValueStoreARN: aws.String(app.cfkvsArn),
+					},
+				)
+			functionConfig.KeyValueStoreAssociations.Quantity = aws.Int32(int32(len(functionConfig.KeyValueStoreAssociations.Items)))
+		}
+
 		if res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 			Name:  aws.String(name),
 			Stage: Stage,
@@ -100,10 +184,10 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		} else {
 			etag = aws.ToString(res.ETag)
-			if bytes.Equal(res.FunctionCode, code) {
-				log.Println("[info] function code is not changed")
+			if bytes.Equal(res.FunctionCode, code) && associated {
+				log.Println("[info] function code and kvs associated is not changed")
 			} else {
-				log.Println("[info] function code is changed. updating function...")
+				log.Println("[info] function code or kvs association is changed, updating...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
 					Name:           aws.String(name),
 					IfMatch:        aws.String(etag),

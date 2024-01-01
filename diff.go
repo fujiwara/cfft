@@ -40,7 +40,10 @@ func (app *CFFT) DiffFunction(ctx context.Context, opt DiffCmd) error {
 		remote = aws.ToString(res.ETag)
 	}
 	local := app.config.Function
-	localCode := app.config.functionCode
+	localCode, err := app.config.FunctionCode()
+	if err != nil {
+		return fmt.Errorf("failed to read function code, %w", err)
+	}
 
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
 	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))
