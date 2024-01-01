@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.0.9](https://github.com/fujiwara/cfft/compare/v0.0.8...v0.0.9) - 2024-01-01
+- Introduce template syntax by go-config by @fujiwara in https://github.com/fujiwara/cfft/pull/9
+- Add env to testCases by @fujiwara in https://github.com/fujiwara/cfft/pull/11
+- use CloudFront KeyValueStore by @fujiwara in https://github.com/fujiwara/cfft/pull/12
+
 ## [v0.0.8](https://github.com/fujiwara/cfft/compare/v0.0.7...v0.0.8) - 2023-12-24
 - Publish by @fujiwara in https://github.com/fujiwara/cfft/pull/8
 
