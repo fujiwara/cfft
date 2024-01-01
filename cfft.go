@@ -14,6 +14,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfrontkeyvaluestore"
 )
 
 var Stage = types.FunctionStageDevelopment
@@ -23,22 +24,44 @@ var Version = "dev"
 type CFFT struct {
 	config     *Config
 	cloudfront *cloudfront.Client
+	cfkvs      *cloudfrontkeyvaluestore.Client
+	cfkvsArn   string
+	envs       map[string]string
 }
 
 func New(ctx context.Context, config *Config) (*CFFT, error) {
 	app := &CFFT{
 		config: config,
+		envs:   map[string]string{},
 	}
 	awscfg, err := awsConfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws config, %w", err)
 	}
 	app.cloudfront = cloudfront.NewFromConfig(awscfg)
+	app.cfkvs = cloudfrontkeyvaluestore.NewFromConfig(awscfg)
+
+	if config.KVS != nil {
+		res, err := app.cloudfront.DescribeKeyValueStore(ctx, &cloudfront.DescribeKeyValueStoreInput{
+			Name: aws.String(config.KVS.Name),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe kvs %s, %w", config.KVS.Name, err)
+		}
+		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
+		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
+		app.cfkvsArn = aws.ToString(res.KeyValueStore.ARN)
+	}
+
 	return app, nil
 }
 
 func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
-	etag, err := app.prepareFunction(ctx, app.config.Name, app.config.functionCode, opt.CreateIfMissing)
+	code, err := app.config.FunctionCode()
+	if err != nil {
+		return fmt.Errorf("failed to load function code, %w", err)
+	}
+	etag, err := app.prepareFunction(ctx, app.config.Name, code, opt.CreateIfMissing)
 	if err != nil {
 		return fmt.Errorf("failed to prepare function, %w", err)
 	}

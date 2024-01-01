@@ -56,6 +56,11 @@ func RunCLI(ctx context.Context, args []string) error {
 }
 
 func (app *CFFT) Dispatch(ctx context.Context, cmd string, cli *CLI) error {
+	for k, v := range app.envs {
+		reset := localEnv(k, v)
+		defer reset()
+	}
+
 	switch cmd {
 	case "test":
 		return app.TestFunction(ctx, cli.Test)

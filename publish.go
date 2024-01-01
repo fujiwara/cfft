@@ -18,7 +18,7 @@ type PublishCmd struct {
 func (app *CFFT) PublishFunction(ctx context.Context, opt PublishCmd) error {
 	name := app.config.Name
 	var etag string
-	var functionCode []byte
+	var remoteCode []byte
 	if res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
 		Stage: Stage,
@@ -30,10 +30,15 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt PublishCmd) error {
 		return fmt.Errorf("failed to describe function, %w", err)
 	} else {
 		etag = aws.ToString(res.ETag)
-		functionCode = res.FunctionCode
+		remoteCode = res.FunctionCode
 	}
 	log.Printf("[info] function %s found", name)
-	if !bytes.Equal(app.config.functionCode, functionCode) {
+
+	localCode, err := app.config.FunctionCode()
+	if err != nil {
+		return fmt.Errorf("failed to read function code, %w", err)
+	}
+	if !bytes.Equal(localCode, remoteCode) {
 		return fmt.Errorf("function code is not up-to-date. please run `cfft diff` and `cfft test` before publish")
 	}
 
