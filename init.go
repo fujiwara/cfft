@@ -61,6 +61,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 	name := opt.Name
 
 	var code []byte
+	var kvsConfig *KeyValueStoreConfig
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
 		Stage: Stage,
@@ -75,6 +76,36 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 	} else {
 		log.Printf("[info] function %s found", name)
 		code = res.FunctionCode
+
+		log.Println("[info] detecting kvs association...")
+		res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
+			Name:  aws.String(name),
+			Stage: Stage,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to describe function, %w", err)
+		}
+		if kvsass := res.FunctionSummary.FunctionConfig.KeyValueStoreAssociations; kvsass != nil {
+			for _, item := range kvsass.Items {
+				if kvsConfig != nil {
+					log.Printf("[warn] function %s has multiple kvs associations. using %s", name, kvsConfig.Name)
+					break
+				}
+				list, err := app.cloudfront.ListKeyValueStores(ctx, &cloudfront.ListKeyValueStoresInput{})
+				if err != nil {
+					return fmt.Errorf("failed to list kvs, %w", err)
+				}
+				for _, kvs := range list.KeyValueStoreList.Items {
+					if aws.ToString(item.KeyValueStoreARN) == aws.ToString(kvs.ARN) {
+						log.Printf("[info] function %s is associated with kvs %s", name, *kvs.Name)
+						kvsConfig = &KeyValueStoreConfig{
+							Name: aws.ToString(kvs.Name),
+						}
+						break
+					}
+				}
+			}
+		}
 	}
 
 	// create function file
@@ -87,6 +118,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
 	config := &Config{
 		Name:     name,
 		Function: "function.js",
+		KVS:      kvsConfig,
 		TestCases: []*TestCase{
 			{
 				Name:  "default",
