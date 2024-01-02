@@ -2,6 +2,42 @@
 
 cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html).
 
+### Description
+
+cfft is a testing tool for CloudFront Functions. cfft helps you to test CloudFront Functions in development stage.
+
+cfft supports the following features.
+
+- Initialize files for testing CloudFront Functions.
+- Test CloudFront Functions in development stage.
+- Compare the result with the expect object.
+- Ignore fields in the expect object.
+- Diff function code.
+- Publish function.
+
+cfft supports management of [CloudFront KeyValueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+
+## Install
+
+### Homebrew
+
+```console
+$ brew install fujiwara/tap/cfft
+```
+
+### Download binary
+
+Download the binary from [GitHub Releases](https://github.com/fujiwara/cfft/releases).
+
+### aqua
+
+[aquaproj](https://aquaproj.github.io/) supports cfft. `fujiwara/cfft` is available in [aqua-registory](https://github.com/aquaproj/aqua-registry).
+
+```console
+$ aqua init
+$ aqua g -i fujiwara/cfft
+```
+
 ## Usage
 
 ```
