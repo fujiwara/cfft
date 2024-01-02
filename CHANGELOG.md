@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.1.1](https://github.com/fujiwara/cfft/compare/v0.1.0...v0.1.1) - 2024-01-02
+
 ## [v0.0.8](https://github.com/fujiwara/cfft/compare/v0.0.7...v0.0.8) - 2023-12-24
 - Publish by @fujiwara in https://github.com/fujiwara/cfft/pull/8
 
