@@ -13,13 +13,17 @@ import (
 )
 
 type KVSCmd struct {
-	List   struct{}      `cmd:"" help:"list key values"`
+	List   *KVSListCmd   `cmd:"" help:"list key values"`
 	Get    *KVSGetCmd    `cmd:"" help:"get value of key"`
 	Put    *KVSPutCmd    `cmd:"" help:"put value of key"`
 	Delete *KVSDeleteCmd `cmd:"" help:"delete key"`
 	Info   struct{}      `cmd:"" help:"show info of key value store"`
 
 	Output string `short:"o" help:"output format (json, text)" default:"json" enum:"json,text"`
+}
+
+type KVSListCmd struct {
+	MaxItems int32 `short:"m" help:"max items" default:"50"`
 }
 
 type KVSGetCmd struct {
@@ -58,6 +62,8 @@ func (app *CFFT) KVSList(ctx context.Context, opt KVSCmd) error {
 		MaxResults: aws.Int32(50),
 	})
 	buf := bufio.NewWriter(os.Stdout)
+	var items int32
+PAGES:
 	for p.HasMorePages() {
 		res, err := p.NextPage(ctx)
 		if err != nil {
@@ -69,6 +75,10 @@ func (app *CFFT) KVSList(ctx context.Context, opt KVSCmd) error {
 				return fmt.Errorf("failed to format item, %w", err)
 			}
 			buf.WriteString(s)
+			items++
+			if items >= opt.List.MaxItems {
+				break PAGES
+			}
 		}
 	}
 	return buf.Flush()
