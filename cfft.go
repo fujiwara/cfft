@@ -63,6 +63,7 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 	}
 	// not found
 	if !create {
+		log.Printf("[warn] failed to describe kvs %s, %s", name, err)
 		return fmt.Errorf("kvs %s not found. To create a new kvs, add --create-if-missing flag", name)
 	}
 
@@ -206,6 +207,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
 	log.Printf("[info] testing function %s with case %s...", name, c.Identifier())
+	//log.Printf("[debug] event: %s", string(c.event))
 	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
