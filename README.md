@@ -75,6 +75,9 @@ Commands:
   kvs info
     show info of key value store
 
+  render
+    render function code
+
   version
     show version
 
@@ -374,6 +377,16 @@ $ cfft publish
 `cfft publish` fails if the local function code differs from the CloudFront Functions code.
 
 Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
+
+### Render function code
+
+`cfft render` renders the function code to stdout.
+
+```console
+$ cfft render
+```
+
+You can use `cfft render` to check the function code after rendering the template syntax.
 
 ## Template syntax
 
