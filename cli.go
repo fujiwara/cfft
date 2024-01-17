@@ -15,6 +15,7 @@ type CLI struct {
 	Diff    DiffCmd    `cmd:"" help:"diff function code"`
 	Publish PublishCmd `cmd:"" help:"publish function"`
 	KVS     KVSCmd     `cmd:"" help:"manage key-value store"`
+	Render  RenderCmd  `cmd:"" help:"render function code"`
 	Version VersionCmd `cmd:"" help:"show version"`
 
 	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
@@ -77,6 +78,8 @@ func (app *CFFT) Dispatch(ctx context.Context, cmds []string, cli *CLI) error {
 		return app.PublishFunction(ctx, cli.Publish)
 	case "kvs":
 		return app.ManageKVS(ctx, cmds[1], cli.KVS)
+	case "render":
+		return app.Render(ctx, cli.Render)
 	case "version":
 		//
 	default:
