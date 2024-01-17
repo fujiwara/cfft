@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aereal/jsondiff"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfrontkeyvaluestore"
+	"github.com/shogo82148/go-retry"
 )
 
 var Stage = types.FunctionStageDevelopment
@@ -79,9 +81,38 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
 		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
 	}
-	log.Printf("[info] kvs %s created", name)
 
-	return nil
+	// kvs is not ready immediately after creation. wait for a while
+	var policy = retry.Policy{
+		MinDelay: 1 * time.Second,
+		MaxDelay: 10 * time.Second,
+		MaxCount: 30,
+	}
+	retrier := policy.Start(ctx)
+	for retrier.Continue() {
+		if err := app.waitForKVSReady(ctx, name); err == nil {
+			log.Printf("[info] kvs %s created", name)
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to create kvs %s, timed out", name)
+}
+
+func (app *CFFT) waitForKVSReady(ctx context.Context, name string) error {
+	res, err := app.cloudfront.DescribeKeyValueStore(ctx, &cloudfront.DescribeKeyValueStoreInput{
+		Name: aws.String(name),
+	})
+	if err != nil {
+		return retry.MarkPermanent(fmt.Errorf("failed to describe kvs %s, %w", name, err))
+	}
+	switch s := aws.ToString(res.KeyValueStore.Status); s {
+	case "READY":
+		return nil
+	default:
+		err := fmt.Errorf("kvs %s is not ready yet. status: %s", name, s)
+		log.Printf("[info] %s", err)
+		return err
+	}
 }
 
 func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
