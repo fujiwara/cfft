@@ -135,18 +135,22 @@ func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
 
 func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (string, error) {
 	log.Printf("[info] creating function %s...", name)
+	var kvsassociation *types.KeyValueStoreAssociations
+	if app.cfkvsArn != "" {
+		kvsassociation = &types.KeyValueStoreAssociations{
+			Quantity: aws.Int32(1),
+			Items: []types.KeyValueStoreAssociation{
+				{KeyValueStoreARN: aws.String(app.cfkvsArn)},
+			},
+		}
+	}
 	res, err := app.cloudfront.CreateFunction(ctx, &cloudfront.CreateFunctionInput{
 		Name:         aws.String(name),
 		FunctionCode: code,
 		FunctionConfig: &types.FunctionConfig{
-			Comment: aws.String("created by cfft"),
-			Runtime: types.FunctionRuntimeCloudfrontJs20,
-			KeyValueStoreAssociations: &types.KeyValueStoreAssociations{
-				Quantity: aws.Int32(1),
-				Items: []types.KeyValueStoreAssociation{
-					{KeyValueStoreARN: aws.String(app.cfkvsArn)},
-				},
-			},
+			Comment:                   aws.String("created by cfft"),
+			Runtime:                   types.FunctionRuntimeCloudfrontJs20,
+			KeyValueStoreAssociations: kvsassociation,
 		},
 	})
 	if err != nil {
@@ -181,32 +185,9 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 	} else {
 		log.Printf("[info] function %s found", name)
 		functionConfig = res.FunctionSummary.FunctionConfig
-
-		var associated bool
-		log.Println("[info] kvsArn:", app.cfkvsArn)
-		if functionConfig.KeyValueStoreAssociations != nil {
-			for _, association := range functionConfig.KeyValueStoreAssociations.Items {
-				log.Println("[info] associated kvs:", aws.ToString(association.KeyValueStoreARN))
-				if aws.ToString(association.KeyValueStoreARN) == app.cfkvsArn {
-					associated = true
-				}
-			}
-		} else {
-			functionConfig.KeyValueStoreAssociations = &types.KeyValueStoreAssociations{
-				Quantity: aws.Int32(0),
-				Items:    []types.KeyValueStoreAssociation{},
-			}
-		}
-		if !associated {
-			log.Printf("[info] associating kvs %s to function %s...", app.config.KVS.Name, name)
-			functionConfig.KeyValueStoreAssociations.Items =
-				append(
-					functionConfig.KeyValueStoreAssociations.Items,
-					types.KeyValueStoreAssociation{
-						KeyValueStoreARN: aws.String(app.cfkvsArn),
-					},
-				)
-			functionConfig.KeyValueStoreAssociations.Quantity = aws.Int32(int32(len(functionConfig.KeyValueStoreAssociations.Items)))
+		associated, err := app.associateKVS(ctx, functionConfig)
+		if err != nil {
+			return "", fmt.Errorf("failed to associate kvs, %w", err)
 		}
 
 		if res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
@@ -216,8 +197,12 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		} else {
 			etag = aws.ToString(res.ETag)
-			if bytes.Equal(res.FunctionCode, code) && associated {
-				log.Println("[info] function code and kvs associated is not changed")
+			if bytes.Equal(res.FunctionCode, code) {
+				if associated {
+					log.Println("[info] function code and kvs associated is not changed")
+				} else {
+					log.Println("[info] function code is not changed")
+				}
 			} else {
 				log.Println("[info] function code or kvs association is changed, updating...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
@@ -234,6 +219,40 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 		}
 	}
 	return etag, nil
+}
+
+func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bool, error) {
+	var associated bool
+	if app.cfkvsArn == "" {
+		// no kvs
+		return false, nil
+	}
+	log.Println("[info] kvsArn:", app.cfkvsArn)
+	if fc.KeyValueStoreAssociations != nil {
+		for _, association := range fc.KeyValueStoreAssociations.Items {
+			log.Println("[info] associated kvs:", aws.ToString(association.KeyValueStoreARN))
+			if aws.ToString(association.KeyValueStoreARN) == app.cfkvsArn {
+				associated = true
+			}
+		}
+	} else {
+		fc.KeyValueStoreAssociations = &types.KeyValueStoreAssociations{
+			Quantity: aws.Int32(0),
+			Items:    []types.KeyValueStoreAssociation{},
+		}
+	}
+	if !associated {
+		log.Printf("[info] associating kvs %s to function %s...", app.config.KVS.Name, app.config.Name)
+		fc.KeyValueStoreAssociations.Items =
+			append(
+				fc.KeyValueStoreAssociations.Items,
+				types.KeyValueStoreAssociation{
+					KeyValueStoreARN: aws.String(app.cfkvsArn),
+				},
+			)
+		fc.KeyValueStoreAssociations.Quantity = aws.Int32(int32(len(fc.KeyValueStoreAssociations.Items)))
+	}
+	return associated, nil
 }
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
