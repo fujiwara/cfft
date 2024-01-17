@@ -15,6 +15,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/itchyny/gojq v0.12.14
 	github.com/kayac/go-config v0.7.0
+	github.com/shogo82148/go-retry v1.2.0
 )
 
 require (
