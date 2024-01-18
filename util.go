@@ -64,11 +64,11 @@ func (app *CFFT) UtilParseResponse(ctx context.Context, opt ParseResponseCmd) er
 }
 
 type CFFEvent struct {
-	Version  string       `json:"version"`
-	Context  *CFFContext  `json:"context"`
-	Viewer   *CFFViewer   `json:"viewer"`
-	Request  *CFFRequest  `json:"request"`
-	Response *CFFResponse `json:"response"`
+	Version  string       `json:"version,omitempty"`
+	Context  *CFFContext  `json:"context,omitempty"`
+	Viewer   *CFFViewer   `json:"viewer,omitempty"`
+	Request  *CFFRequest  `json:"request,omitempty"`
+	Response *CFFResponse `json:"response,omitempty"`
 }
 
 func (r *CFFRequest) UnmarshalJSON(b []byte) error {
@@ -121,10 +121,10 @@ requestId
 A string that uniquely identifies a CloudFront request (and its associated response).
 */
 type CFFContext struct {
-	DistributionDomainName string `json:"distributionDomainName"`
-	DistributionId         string `json:"distributionId"`
-	EventType              string `json:"eventType"`
-	RequestId              string `json:"requestId"`
+	DistributionDomainName string `json:"distributionDomainName,omitempty"`
+	DistributionId         string `json:"distributionId,omitempty"`
+	EventType              string `json:"eventType,omitempty"`
+	RequestId              string `json:"requestId,omitempty"`
 }
 
 /*
@@ -218,7 +218,7 @@ The body content.
 type cffresponse CFFResponse
 
 type CFFResponse struct {
-	StatusCode        int                       `json:"statusCode"`
+	StatusCode        int                       `json:"statusCode,omitempty"`
 	StatusDescription string                    `json:"statusDescription,omitempty"`
 	Headers           map[string]CFFValue       `json:"headers,omitempty"`
 	Cookies           map[string]CFFCookieValue `json:"cookies,omitempty"`

@@ -256,7 +256,7 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
 	log.Printf("[info] testing function %s with case %s...", name, c.Identifier())
-	//log.Printf("[debug] event: %s", string(c.event))
+	log.Printf("[debug] event: %s", string(c.EventBytes()))
 	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
