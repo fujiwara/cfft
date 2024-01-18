@@ -1,5 +1,6 @@
 # Changelog
 
+=======
 ## [v0.1.1](https://github.com/fujiwara/cfft/compare/v0.1.0...v0.1.1) - 2024-01-18
 - Add render sub command. by @fujiwara in https://github.com/fujiwara/cfft/pull/14
 - wait for kvs ready after creation. by @fujiwara in https://github.com/fujiwara/cfft/pull/15
@@ -15,6 +16,9 @@
 
 ## [v0.0.8](https://github.com/fujiwara/cfft/compare/v0.0.7...v0.0.8) - 2023-12-24
 - Publish by @fujiwara in https://github.com/fujiwara/cfft/pull/8
+
+## [v0.0.6](https://github.com/fujiwara/cfft/compare/v0.0.5...v0.0.6) - 2023-12-23
+- files in a configuration file resolves relative path. by @fujiwara in https://github.com/fujiwara/cfft/pull/5
 
 ## [v0.0.3](https://github.com/fujiwara/cfft/compare/v0.0.2...v0.0.3) - 2023-12-22
 
