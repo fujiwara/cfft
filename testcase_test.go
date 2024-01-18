@@ -28,7 +28,7 @@ func TestSetup(t *testing.T) {
 func TestSetupText(t *testing.T) {
 	ctx := context.Background()
 
-	for _, ext := range []string{".jsonnet"} {
+	for _, ext := range []string{".jsonnet", ".yaml"} {
 		t.Run(ext, func(t *testing.T) {
 			testCase := &cfft.TestCase{
 				Event:  "testdata/text_event" + ext,
