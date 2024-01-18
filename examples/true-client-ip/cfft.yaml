@@ -1,0 +1,20 @@
+name: "{{ env `NAME` `true-client-ip` }}"
+function: function.js
+kvs:
+  name: ipset
+testCases:
+  - name: default
+    event: event.json
+    expect: expect.json
+  - name: localhost
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 127.0.0.1
+      HOSTNAME: localhost
+  - name: home
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 192.168.1.1
+      HOSTNAME: home

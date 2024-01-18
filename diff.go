@@ -16,7 +16,7 @@ import (
 
 type DiffCmd struct{}
 
-func (app *CFFT) DiffFunction(ctx context.Context, opt DiffCmd) error {
+func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 	name := app.config.Name
 	var remoteCode []byte
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
@@ -24,19 +24,26 @@ func (app *CFFT) DiffFunction(ctx context.Context, opt DiffCmd) error {
 		Stage: Stage,
 	})
 	if err != nil {
-		var notFound types.EntityNotFound
-		if errors.Is(err, &notFound) {
+		var notFound *types.NoSuchFunctionExists
+		if errors.As(err, &notFound) {
+			log.Printf("[info] function %s not found", name)
+		} else {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
-		log.Printf("[info] function %s not found", name)
 	} else {
 		log.Printf("[info] function %s found", name)
 		remoteCode = res.FunctionCode
 	}
 
-	remote := aws.ToString(res.ETag)
+	var remote string
+	if res != nil {
+		remote = aws.ToString(res.ETag)
+	}
 	local := app.config.Function
-	localCode := app.config.functionCode
+	localCode, err := app.config.FunctionCode()
+	if err != nil {
+		return fmt.Errorf("failed to read function code, %w", err)
+	}
 
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
 	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))

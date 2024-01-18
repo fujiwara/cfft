@@ -2,6 +2,42 @@
 
 cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html).
 
+### Description
+
+cfft is a testing tool for CloudFront Functions. cfft helps you to test CloudFront Functions in development stage.
+
+cfft supports the following features.
+
+- Initialize files for testing CloudFront Functions.
+- Test CloudFront Functions in development stage.
+- Compare the result with the expect object.
+- Ignore fields in the expect object.
+- Diff function code.
+- Publish function.
+
+cfft supports management of [CloudFront KeyValueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+
+## Install
+
+### Homebrew
+
+```console
+$ brew install fujiwara/tap/cfft
+```
+
+### Download binary
+
+Download the binary from [GitHub Releases](https://github.com/fujiwara/cfft/releases).
+
+### aqua
+
+[aquaproj](https://aquaproj.github.io/) supports cfft. `fujiwara/cfft` is available in [aqua-registory](https://github.com/aquaproj/aqua-registry).
+
+```console
+$ aqua init
+$ aqua g -i fujiwara/cfft
+```
+
 ## Usage
 
 ```
@@ -21,8 +57,31 @@ Commands:
   diff
     diff function code
 
+  publish
+    publish function
+
+  kvs list
+    list key values
+
+  kvs get <key>
+    get value of key
+
+  kvs put <key> <value>
+    put value of key
+
+  kvs delete <key>
+    delete key
+
+  kvs info
+    show info of key value store
+
+  render
+    render function code
+
   version
     show version
+
+Run "cfft <command> --help" for more information on a command.
 ```
 
 ### Example of initializing files for testing CloudFront Functions
@@ -179,7 +238,6 @@ If the result is different from the `expect.json`, cfft exits with a non-zero st
     "statusDescription": "OK"
   }
 }
-2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal:
 --- expect
 +++ actual
 @@ -3,7 +3,7 @@
@@ -191,6 +249,8 @@ If the result is different from the `expect.json`, cfft exits with a non-zero st
        }
      },
      "statusCode": 200,
+
+2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal
 ```
 
 expect.json
@@ -246,6 +306,132 @@ cfft supports the following file extensions.
 - .yaml
 - .yml
 
+### HTTP text format for Request and Response objects
+
+cfft supports an HTTP text format for Request and Response objects.
+
+The following example is the HTTP text format of the Request object.
+
+```
+GET /index.html HTTP/1.1
+Host: example.com
+```
+
+The request object is converted to the following JSON object.
+
+```json
+{
+  "method": "GET",
+  "uri": "/index.html",
+  "headers": {
+    "host": {
+      "value": "example.com"
+    }
+  }
+}
+```
+
+The following example is the HTTP text format of the Response object.
+
+```
+HTTP/1.1 302 Found
+Location: https://example.com/
+```
+
+The response object is converted to the following JSON object.
+
+```json
+{
+  "statusCode": 302,
+  "statusDescription": "Found",
+  "headers": {
+    "location": {
+      "value": "https://example.com/"
+    }
+  }
+}
+```
+
+For use of the text format, I recommend using YAML or Jsonnet format for the event and expect files instead of plain JSON. YAML and Jsonnet support multiline strings.
+
+```yaml
+# event.yaml
+---
+version: "1.0"
+context:
+  eventType: viewer-response
+viewer:
+  ip: 1.2.3.4
+request: |
+  GET /index.html HTTP/1.1
+  Host: example.com
+response: |
+  HTTP/1.1 302 Found
+  Location: https://example.com/
+```
+
+```jsonnet
+{
+  version: '1.0',
+  context: {
+    eventType: 'viewer-response',
+  },
+  viewer: {
+    ip: '1.2.3.4',
+  },
+  request: |||
+    GET /index.html HTTP/1.1
+    Host: example.com
+  |||,
+  response: |||
+    HTTP/1.1 302 Found
+    Location: https://example.com/
+  |||,
+}
+```
+
+### Use CloudFront KeyValueStore
+
+cfft supports [CloudFront KeyVakueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+
+```yaml
+# cfft.yaml
+name: function-with-kvs
+function: function.js
+kvs:
+  name: hostnames
+```
+
+If you specify the `kvs` element in the config file, cfft creates a KeyValueStore with the name, if not exsites, and associates the KeyValueStore with the function. You can use the KeyValueStore in the function code.
+
+In a function code, the KVS id is available in the `KVS_ID` environment variable.
+
+```js
+import cf from 'cloudfront';
+
+const kvsId = "{{ must_env `KVS_ID` }}";
+const kvsHandle = cf.kvs(kvsId);
+
+async function handler(event) {
+  const request = event.request;
+  const clientIP = event.viewer.ip;
+  const hostname = (await kvsHandle.exists(clientIP)) ? await kvsHandle.get(clientIP) : 'unknown';
+
+  request.headers['x-hostname'] = { value: hostname };
+  return request;
+}
+```
+
+#### Manage KVS key values with `cfft kvs` command
+
+`cfft kvs` command manages KVS key values.
+
+- `cfft kvs list` lists all key values.
+- `cfft kvs get <key>` gets the value of the key.
+- `cfft kvs put <key> <value>` puts the value of the key.
+- `cfft kvs delete <key>` deletes the key.
+- `cfft kvs info` shows the information of the KeyValueStore.
+
 ### Diff function code
 
 `cfft diff` compares the function code with the code in the CloudFront Functions.
@@ -264,6 +450,103 @@ $ cfft diff
  }
 ```
 
+### Publish function
+
+`cfft publish` publishes the function to the CloudFront Functions.
+
+```console
+$ cfft publish
+```
+
+`cfft publish` fails if the local function code differs from the CloudFront Functions code.
+
+Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
+
+### Render function code
+
+`cfft render` renders the function code to stdout.
+
+```console
+$ cfft render
+```
+
+You can use `cfft render` to check the function code after rendering the template syntax.
+
+## Template syntax
+
+cfft read files (config, function, event, and expect) with the following template syntax by [kayac/go-config](https://github.com/kayac/go-config).
+
+`must_env` function renders the environment variable value.
+
+```
+{{ must_env `FOO` }}
+```
+
+If the environment variable `FOO` is not set, cfft exits with a non-zero status code. You can use `env` function to set a default value.
+
+```
+{{ env `BAR` `default_of_BAR` }}
+```
+
+See [examples/true-client-ip](examples/true-client-ip) directory to see how to use the template syntax.
+
+```yaml
+testCases:
+  - name: localhost
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 127.0.0.1
+      HOSTNAME: localhost
+  - name: home
+    event: event.json
+    expect: expect.json
+    env:
+      IP: 192.168.1.1
+      HOSTNAME: home
+```
+
+In `testCases`, `env` overrides the environment variables. These values are used in `event.json` and `expect.json`.
+
+event.json
+```json
+{
+    "version": "1.0",
+    "context": {
+        "eventType": "viewer-request"
+    },
+    "viewer": {
+        "ip": "{{ env `IP` `127.0.0.2` }}"
+    },
+    "request": {
+        "method": "GET",
+        "uri": "/index.html",
+        "headers": {},
+        "cookies": {},
+        "querystring": {}
+    }
+}
+```
+
+expect.json
+```json
+{
+    "request": {
+        "cookies": {},
+        "headers": {
+            "true-client-ip": {
+                "value": "{{ env `IP` `127.0.0.2` }}"
+            },
+            "x-hostname": {
+                "value": "{{ env `HOSTNAME` `unknown` }}"
+            }
+        },
+        "method": "GET",
+        "querystring": {},
+        "uri": "/index.html"
+    }
+}
+```
 
 ## LICENSE
 
