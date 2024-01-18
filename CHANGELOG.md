@@ -20,6 +20,9 @@
 ## [v0.0.6](https://github.com/fujiwara/cfft/compare/v0.0.5...v0.0.6) - 2023-12-23
 - files in a configuration file resolves relative path. by @fujiwara in https://github.com/fujiwara/cfft/pull/5
 
+## [v0.0.5](https://github.com/fujiwara/cfft/compare/v0.0.4...v0.0.5) - 2023-12-23
+- Introduce config file interface. by @fujiwara in https://github.com/fujiwara/cfft/pull/3
+
 ## [v0.0.3](https://github.com/fujiwara/cfft/compare/v0.0.2...v0.0.3) - 2023-12-22
 
 ## [v0.0.2](https://github.com/fujiwara/cfft/compare/v0.0.1...v0.0.2) - 2023-12-22
