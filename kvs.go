@@ -39,7 +39,7 @@ type KVSDeleteCmd struct {
 	Key string `arg:"" help:"key name" required:""`
 }
 
-func (app *CFFT) ManageKVS(ctx context.Context, op string, opt KVSCmd) error {
+func (app *CFFT) ManageKVS(ctx context.Context, op string, opt *KVSCmd) error {
 	switch op {
 	case "list":
 		return app.KVSList(ctx, opt)
@@ -56,7 +56,7 @@ func (app *CFFT) ManageKVS(ctx context.Context, op string, opt KVSCmd) error {
 	}
 }
 
-func (app *CFFT) KVSList(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSList(ctx context.Context, opt *KVSCmd) error {
 	p := cloudfrontkeyvaluestore.NewListKeysPaginator(app.cfkvs, &cloudfrontkeyvaluestore.ListKeysInput{
 		KvsARN:     aws.String(app.cfkvsArn),
 		MaxResults: aws.Int32(50),
@@ -84,7 +84,7 @@ PAGES:
 	return buf.Flush()
 }
 
-func (app *CFFT) KVSGet(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSGet(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.GetKey(ctx, &cloudfrontkeyvaluestore.GetKeyInput{
 		KvsARN: aws.String(app.cfkvsArn),
 		Key:    aws.String(opt.Get.Key),
@@ -100,7 +100,7 @@ func (app *CFFT) KVSGet(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSPut(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSPut(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})
@@ -118,7 +118,7 @@ func (app *CFFT) KVSPut(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSDelete(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSDelete(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})
@@ -135,7 +135,7 @@ func (app *CFFT) KVSDelete(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSInfo(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSInfo(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})

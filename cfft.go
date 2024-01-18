@@ -114,7 +114,10 @@ func (app *CFFT) waitForKVSReady(ctx context.Context, name string) error {
 	}
 }
 
-func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
+func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
+	if err := opt.Setup(); err != nil {
+		return err
+	}
 	code, err := app.config.FunctionCode()
 	if err != nil {
 		return fmt.Errorf("failed to load function code, %w", err)
@@ -125,6 +128,10 @@ func (app *CFFT) TestFunction(ctx context.Context, opt TestCmd) error {
 	}
 
 	for _, testCase := range app.config.TestCases {
+		if !opt.ShouldRun(testCase.Identifier()) {
+			log.Printf("[debug] skipping test case %s", testCase.Identifier())
+			continue
+		}
 		if err := app.runTestCase(ctx, app.config.Name, etag, testCase); err != nil {
 			return fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
 		}
