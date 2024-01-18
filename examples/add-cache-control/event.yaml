@@ -1,0 +1,11 @@
+---
+version: "1.0"
+context:
+  eventType: viewer-response
+viewer:
+  ip: 1.2.3.4
+request: |
+  GET /index.html HTTP/1.1
+  Host: example.com
+response: |
+  HTTP/1.1 200 OK

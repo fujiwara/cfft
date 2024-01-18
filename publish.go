@@ -15,7 +15,7 @@ import (
 type PublishCmd struct {
 }
 
-func (app *CFFT) PublishFunction(ctx context.Context, opt PublishCmd) error {
+func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	name := app.config.Name
 	var etag string
 	var remoteCode []byte

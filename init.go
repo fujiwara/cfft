@@ -57,7 +57,7 @@ type InitCmd struct {
 	EventType string `help:"event type (viewer-request,viewer-response)" default:"viewer-request" enum:"viewer-request,viewer-response"`
 }
 
-func (app *CFFT) InitFunction(ctx context.Context, opt InitCmd) error {
+func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	name := opt.Name
 
 	var code []byte

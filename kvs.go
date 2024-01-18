@@ -13,13 +13,17 @@ import (
 )
 
 type KVSCmd struct {
-	List   struct{}      `cmd:"" help:"list key values"`
+	List   *KVSListCmd   `cmd:"" help:"list key values"`
 	Get    *KVSGetCmd    `cmd:"" help:"get value of key"`
 	Put    *KVSPutCmd    `cmd:"" help:"put value of key"`
 	Delete *KVSDeleteCmd `cmd:"" help:"delete key"`
 	Info   struct{}      `cmd:"" help:"show info of key value store"`
 
 	Output string `short:"o" help:"output format (json, text)" default:"json" enum:"json,text"`
+}
+
+type KVSListCmd struct {
+	MaxItems int32 `short:"m" help:"max items" default:"50"`
 }
 
 type KVSGetCmd struct {
@@ -35,7 +39,7 @@ type KVSDeleteCmd struct {
 	Key string `arg:"" help:"key name" required:""`
 }
 
-func (app *CFFT) ManageKVS(ctx context.Context, op string, opt KVSCmd) error {
+func (app *CFFT) ManageKVS(ctx context.Context, op string, opt *KVSCmd) error {
 	switch op {
 	case "list":
 		return app.KVSList(ctx, opt)
@@ -52,12 +56,14 @@ func (app *CFFT) ManageKVS(ctx context.Context, op string, opt KVSCmd) error {
 	}
 }
 
-func (app *CFFT) KVSList(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSList(ctx context.Context, opt *KVSCmd) error {
 	p := cloudfrontkeyvaluestore.NewListKeysPaginator(app.cfkvs, &cloudfrontkeyvaluestore.ListKeysInput{
 		KvsARN:     aws.String(app.cfkvsArn),
 		MaxResults: aws.Int32(50),
 	})
 	buf := bufio.NewWriter(os.Stdout)
+	var items int32
+PAGES:
 	for p.HasMorePages() {
 		res, err := p.NextPage(ctx)
 		if err != nil {
@@ -69,12 +75,16 @@ func (app *CFFT) KVSList(ctx context.Context, opt KVSCmd) error {
 				return fmt.Errorf("failed to format item, %w", err)
 			}
 			buf.WriteString(s)
+			items++
+			if items >= opt.List.MaxItems {
+				break PAGES
+			}
 		}
 	}
 	return buf.Flush()
 }
 
-func (app *CFFT) KVSGet(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSGet(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.GetKey(ctx, &cloudfrontkeyvaluestore.GetKeyInput{
 		KvsARN: aws.String(app.cfkvsArn),
 		Key:    aws.String(opt.Get.Key),
@@ -90,7 +100,7 @@ func (app *CFFT) KVSGet(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSPut(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSPut(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})
@@ -108,7 +118,7 @@ func (app *CFFT) KVSPut(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSDelete(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSDelete(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})
@@ -125,7 +135,7 @@ func (app *CFFT) KVSDelete(ctx context.Context, opt KVSCmd) error {
 	return nil
 }
 
-func (app *CFFT) KVSInfo(ctx context.Context, opt KVSCmd) error {
+func (app *CFFT) KVSInfo(ctx context.Context, opt *KVSCmd) error {
 	res, err := app.cfkvs.DescribeKeyValueStore(ctx, &cloudfrontkeyvaluestore.DescribeKeyValueStoreInput{
 		KvsARN: aws.String(app.cfkvsArn),
 	})

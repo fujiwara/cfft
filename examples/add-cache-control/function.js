@@ -3,7 +3,7 @@ async function handler(event) {
   const headers = response.headers;
 
   // Set the cache-control header
-  headers['cache-control'] = { value: 'public, max-age=63072000' };
+  headers['cache-control'] = { value: 'public, max-age=6307200' };
   console.log('[on the edge] Cache-Control header set.');
 
   // Return response to viewers

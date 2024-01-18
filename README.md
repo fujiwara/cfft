@@ -2,6 +2,42 @@
 
 cfft is a testing tool for [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html).
 
+### Description
+
+cfft is a testing tool for CloudFront Functions. cfft helps you to test CloudFront Functions in development stage.
+
+cfft supports the following features.
+
+- Initialize files for testing CloudFront Functions.
+- Test CloudFront Functions in development stage.
+- Compare the result with the expect object.
+- Ignore fields in the expect object.
+- Diff function code.
+- Publish function.
+
+cfft supports management of [CloudFront KeyValueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+
+## Install
+
+### Homebrew
+
+```console
+$ brew install fujiwara/tap/cfft
+```
+
+### Download binary
+
+Download the binary from [GitHub Releases](https://github.com/fujiwara/cfft/releases).
+
+### aqua
+
+[aquaproj](https://aquaproj.github.io/) supports cfft. `fujiwara/cfft` is available in [aqua-registory](https://github.com/aquaproj/aqua-registry).
+
+```console
+$ aqua init
+$ aqua g -i fujiwara/cfft
+```
+
 ## Usage
 
 ```
@@ -38,6 +74,9 @@ Commands:
 
   kvs info
     show info of key value store
+
+  render
+    render function code
 
   version
     show version
@@ -267,6 +306,90 @@ cfft supports the following file extensions.
 - .yaml
 - .yml
 
+### HTTP text format for Request and Response objects
+
+cfft supports an HTTP text format for Request and Response objects.
+
+The following example is the HTTP text format of the Request object.
+
+```
+GET /index.html HTTP/1.1
+Host: example.com
+```
+
+The request object is converted to the following JSON object.
+
+```json
+{
+  "method": "GET",
+  "uri": "/index.html",
+  "headers": {
+    "host": {
+      "value": "example.com"
+    }
+  }
+}
+```
+
+The following example is the HTTP text format of the Response object.
+
+```
+HTTP/1.1 302 Found
+Location: https://example.com/
+```
+
+The response object is converted to the following JSON object.
+
+```json
+{
+  "statusCode": 302,
+  "statusDescription": "Found",
+  "headers": {
+    "location": {
+      "value": "https://example.com/"
+    }
+  }
+}
+```
+
+For use of the text format, I recommend using YAML or Jsonnet format for the event and expect files instead of plain JSON. YAML and Jsonnet support multiline strings.
+
+```yaml
+# event.yaml
+---
+version: "1.0"
+context:
+  eventType: viewer-response
+viewer:
+  ip: 1.2.3.4
+request: |
+  GET /index.html HTTP/1.1
+  Host: example.com
+response: |
+  HTTP/1.1 302 Found
+  Location: https://example.com/
+```
+
+```jsonnet
+{
+  version: '1.0',
+  context: {
+    eventType: 'viewer-response',
+  },
+  viewer: {
+    ip: '1.2.3.4',
+  },
+  request: |||
+    GET /index.html HTTP/1.1
+    Host: example.com
+  |||,
+  response: |||
+    HTTP/1.1 302 Found
+    Location: https://example.com/
+  |||,
+}
+```
+
 ### Use CloudFront KeyValueStore
 
 cfft supports [CloudFront KeyVakueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
@@ -338,6 +461,16 @@ $ cfft publish
 `cfft publish` fails if the local function code differs from the CloudFront Functions code.
 
 Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
+
+### Render function code
+
+`cfft render` renders the function code to stdout.
+
+```console
+$ cfft render
+```
+
+You can use `cfft render` to check the function code after rendering the template syntax.
 
 ## Template syntax
 
