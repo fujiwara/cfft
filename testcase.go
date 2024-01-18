@@ -3,7 +3,6 @@ package cfft
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,9 +18,23 @@ type TestCase struct {
 	Env    map[string]string `json:"env" yaml:"env"`
 
 	id     int
-	event  []byte
-	expect any
+	event  *CFFEvent
+	expect *CFFExpect
 	ignore *gojq.Query
+}
+
+type CFFExpect struct {
+	Request *CFFRequest  `json:"request,omitempty"`
+	Reponse *CFFResponse `json:"response,omitempty"`
+}
+
+func (c *TestCase) EventBytes() []byte {
+	return c.event.Bytes()
+}
+
+func (c *TestCase) ExpectBytes() []byte {
+	b, _ := json.Marshal(c.expect)
+	return b
 }
 
 func (c *TestCase) Identifier() string {
@@ -41,11 +54,11 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 	if err != nil {
 		return fmt.Errorf("failed to read event object, %w", err)
 	}
-	c.event = eventBytes
-
-	if len(c.event) == 0 {
-		return errors.New("event is empty")
+	var event CFFEvent
+	if err := json.Unmarshal(eventBytes, &event); err != nil {
+		return fmt.Errorf("failed to parse event object as CFF event object, %w", err)
 	}
+	c.event = &event
 
 	if len(c.Expect) > 0 {
 		// expect is optional
@@ -53,9 +66,16 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 		if err != nil {
 			return fmt.Errorf("failed to read expect object, %w", err)
 		}
-		if err := json.Unmarshal(expectBytes, &c.expect); err != nil {
+		if len(expectBytes) == 0 {
+			return fmt.Errorf("expect object is empty")
+		} else {
+			log.Printf("[debug] expect object: %s", string(expectBytes))
+		}
+		var expect CFFExpect
+		if err := json.Unmarshal(expectBytes, &expect); err != nil {
 			return fmt.Errorf("failed to parse expect object, %w", err)
 		}
+		c.expect = &expect
 	}
 
 	if len(c.Ignore) > 0 {

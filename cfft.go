@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/aereal/jsondiff"
@@ -262,36 +261,33 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
 		Stage:       Stage,
-		EventObject: c.event,
+		EventObject: c.EventBytes(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to test function, %w", err)
 	}
 	var failed bool
 	if errMsg := aws.ToString(res.TestResult.FunctionErrorMessage); errMsg != "" {
-		log.Printf("[error] %s", errMsg)
+		log.Printf("[error][%s] %s", c.Identifier(), errMsg)
 		failed = true
 	}
-	log.Printf("[info] ComputeUtilization:%s", aws.ToString(res.TestResult.ComputeUtilization))
+	log.Printf("[info][%s] ComputeUtilization:%s", c.Identifier(), aws.ToString(res.TestResult.ComputeUtilization))
 	for _, l := range res.TestResult.FunctionExecutionLogs {
 		log.Println(l)
 	}
-	var out any
-	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &out); err != nil {
-		return fmt.Errorf("failed to parse function output, %w", err)
-	}
-	prettyOutput, _ := json.MarshalIndent(out, "", "  ")
-	prettyOutput = append(prettyOutput, '\n')
-	os.Stdout.Write(prettyOutput)
+	out := *res.TestResult.FunctionOutput
 	if failed {
+		log.Printf("[info][%s] function output: %s", c.Identifier(), out)
 		return errors.New("test failed")
+	} else {
+		log.Printf("[debug][%s] function output: %s", c.Identifier(), out)
 	}
 	if c.expect == nil {
 		return nil
 	}
 
-	var rhs any
-	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &rhs); err != nil {
+	var result CFFExpect
+	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &result); err != nil {
 		return fmt.Errorf("failed to parse function output, %w", err)
 	}
 	var options []jsondiff.Option
@@ -300,7 +296,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	diff, err := jsondiff.Diff(
 		&jsondiff.Input{Name: "expect", X: c.expect},
-		&jsondiff.Input{Name: "actual", X: rhs},
+		&jsondiff.Input{Name: "actual", X: result},
 		options...,
 	)
 	if err != nil {
@@ -310,7 +306,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		fmt.Print(coloredDiff(diff))
 		return fmt.Errorf("expect and actual are not equal")
 	} else {
-		log.Println("[info] expect and actual are equal")
+		log.Printf("[info][%s] OK", c.Identifier())
 	}
 	return nil
 }

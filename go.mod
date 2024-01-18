@@ -31,10 +31,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.6 // indirect
 	github.com/aws/smithy-go v1.19.0 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/samber/lo v1.39.0 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
