@@ -16,7 +16,7 @@ import (
 
 type DiffCmd struct{}
 
-func (app *CFFT) DiffFunction(ctx context.Context, opt DiffCmd) error {
+func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 	name := app.config.Name
 	var remoteCode []byte
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{

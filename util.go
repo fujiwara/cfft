@@ -24,7 +24,7 @@ type ParseRequestCmd struct{}
 
 type ParseResponseCmd struct{}
 
-func (app *CFFT) RunUtil(ctx context.Context, op string, opt UtilCmd) error {
+func (app *CFFT) RunUtil(ctx context.Context, op string, opt *UtilCmd) error {
 	switch op {
 	case "parse-request":
 		return app.UtilParseRequest(ctx, opt.ParseRequest)
