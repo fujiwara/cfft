@@ -5,3 +5,6 @@ testCases:
   - name: add-cache-control
     event: event.json
     expect: expect.json
+  - name: add-cache-control-text
+    event: event.yaml
+    expect: expect.yaml

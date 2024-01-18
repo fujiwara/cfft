@@ -306,6 +306,90 @@ cfft supports the following file extensions.
 - .yaml
 - .yml
 
+### HTTP text format for Request and Response objects
+
+cfft supports an HTTP text format for Request and Response objects.
+
+The following example is the HTTP text format of the Request object.
+
+```
+GET /index.html HTTP/1.1
+Host: example.com
+```
+
+The request object is converted to the following JSON object.
+
+```json
+{
+  "method": "GET",
+  "uri": "/index.html",
+  "headers": {
+    "host": {
+      "value": "example.com"
+    }
+  }
+}
+```
+
+The following example is the HTTP text format of the Response object.
+
+```
+HTTP/1.1 302 Found
+Location: https://example.com/
+```
+
+The response object is converted to the following JSON object.
+
+```json
+{
+  "statusCode": 302,
+  "statusDescription": "Found",
+  "headers": {
+    "location": {
+      "value": "https://example.com/"
+    }
+  }
+}
+```
+
+For use of the text format, I recommend using YAML or Jsonnet format for the event and expect files instead of plain JSON. YAML and Jsonnet support multiline strings.
+
+```yaml
+# event.yaml
+---
+version: "1.0"
+context:
+  eventType: viewer-response
+viewer:
+  ip: 1.2.3.4
+request: |
+  GET /index.html HTTP/1.1
+  Host: example.com
+response: |
+  HTTP/1.1 302 Found
+  Location: https://example.com/
+```
+
+```jsonnet
+{
+  version: '1.0',
+  context: {
+    eventType: 'viewer-response',
+  },
+  viewer: {
+    ip: '1.2.3.4',
+  },
+  request: |||
+    GET /index.html HTTP/1.1
+    Host: example.com
+  |||,
+  response: |||
+    HTTP/1.1 302 Found
+    Location: https://example.com/
+  |||,
+}
+```
+
 ### Use CloudFront KeyValueStore
 
 cfft supports [CloudFront KeyVakueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
