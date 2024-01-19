@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -32,7 +32,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 		etag = aws.ToString(res.ETag)
 		remoteCode = res.FunctionCode
 	}
-	log.Printf("[info] function %s found", name)
+	slog.Info(f("function %s found", name))
 
 	localCode, err := app.config.FunctionCode()
 	if err != nil {
@@ -42,13 +42,13 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 		return fmt.Errorf("function code is not up-to-date. please run `cfft diff` and `cfft test` before publish")
 	}
 
-	log.Printf("[info] publishing function %s...", name)
+	slog.Info(f("publishing function %s...", name))
 	if _, err := app.cloudfront.PublishFunction(ctx, &cloudfront.PublishFunctionInput{
 		Name:    aws.String(name),
 		IfMatch: aws.String(etag),
 	}); err != nil {
 		return fmt.Errorf("failed to publish function, %w", err)
 	}
-	log.Printf("[info] function %s published successfully", name)
+	slog.Info(f("function %s published successfully", name))
 	return nil
 }

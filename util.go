@@ -15,6 +15,10 @@ import (
 	"github.com/samber/lo"
 )
 
+func f(format string, args ...any) string {
+	return fmt.Sprintf(format, args...)
+}
+
 type UtilCmd struct {
 	ParseRequest  ParseRequestCmd  `cmd:"" help:"parse HTTP request text from STDIN"`
 	ParseResponse ParseResponseCmd `cmd:"" help:"parse HTTP response text from STDIN"`

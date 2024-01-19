@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -71,13 +71,13 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		if !errors.As(err, &notFound) {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
-		log.Printf("[info] function %s not found. using default code for %s", name, opt.EventType)
+		slog.Info(f("function %s not found. using default code for %s", name, opt.EventType))
 		code = DefaultFunctionCode(opt.EventType)
 	} else {
-		log.Printf("[info] function %s found", name)
+		slog.Info(f("function %s found", name))
 		code = res.FunctionCode
 
-		log.Println("[info] detecting kvs association...")
+		slog.Info("detecting kvs association...")
 		res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
 			Name:  aws.String(name),
 			Stage: Stage,
@@ -88,7 +88,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		if kvsass := res.FunctionSummary.FunctionConfig.KeyValueStoreAssociations; kvsass != nil {
 			for _, item := range kvsass.Items {
 				if kvsConfig != nil {
-					log.Printf("[warn] function %s has multiple kvs associations. using %s", name, kvsConfig.Name)
+					slog.Warn(f("function %s has multiple kvs associations. using %s", name, kvsConfig.Name))
 					break
 				}
 				list, err := app.cloudfront.ListKeyValueStores(ctx, &cloudfront.ListKeyValueStoresInput{})
@@ -97,7 +97,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 				}
 				for _, kvs := range list.KeyValueStoreList.Items {
 					if aws.ToString(item.KeyValueStoreARN) == aws.ToString(kvs.ARN) {
-						log.Printf("[info] function %s is associated with kvs %s", name, *kvs.Name)
+						slog.Info(f("function %s is associated with kvs %s", name, *kvs.Name))
 						kvsConfig = &KeyValueStoreConfig{
 							Name: aws.ToString(kvs.Name),
 						}
@@ -109,7 +109,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	}
 
 	// create function file
-	log.Printf("[info] creating function file function.js")
+	slog.Info("creating function file: function.js")
 	if err := WriteFile("function.js", code, 0644); err != nil {
 		return fmt.Errorf("failed to write file, %w", err)
 	}
@@ -129,14 +129,14 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	if b, err := yaml.Marshal(config); err != nil {
 		return fmt.Errorf("failed to marshal yaml, %w", err)
 	} else {
-		log.Printf("[info] creating config file cfft.yaml")
+		slog.Info("creating config file: cfft.yaml")
 		if err := WriteFile("cfft.yaml", b, 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
 	}
 
 	// create event file
-	log.Printf("[info] creating event file event.%s", opt.Format)
+	slog.Info(f("creating event file event.%s", opt.Format))
 	switch opt.Format {
 	case "jsonnet":
 		out, err := formatter.Format("event.jsonnet", string(DefaultEvent(opt.EventType)), formatter.DefaultOptions())
@@ -166,7 +166,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		return fmt.Errorf("invalid format %s", opt.Format)
 	}
 
-	log.Println("[info] done")
+	slog.Info("done")
 	return nil
 }
 
