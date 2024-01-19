@@ -179,23 +179,13 @@ event.json
 
 ```console
 $ cfft test
-2023/12/23 15:09:04 [info] function my-function found
-2023/12/23 15:09:04 [info] function code is not changed
-2023/12/23 15:09:04 [info] testing function my-function with case add-cache-control...
-2023/12/23 15:09:05 [info] ComputeUtilization:30
-2023/12/23 15:09:05 [on the edge] Cache-Control header set.
-{
-  "response": {
-    "cookies": {},
-    "headers": {
-      "cache-control": {
-        "value": "public, max-age=63072000"
-      }
-    },
-    "statusCode": 200,
-    "statusDescription": "OK"
-  }
-}
+2024-01-19T22:35:26+09:00 [info] function my-function found
+2024-01-19T22:35:26+09:00 [info] function code is not changed
+2024-01-19T22:35:26+09:00 [info] [testcase:add-cache-control] testing function
+2024-01-19T22:35:26+09:00 [info] [testcase:add-cache-control] ComputeUtilization: 31 optimal
+2024-01-19T22:35:26+09:00 [info] [testcase:add-cache-control] [from:my-function] [on the edge] Cache-Control header set.
+2024-01-19T22:35:26+09:00 [info] [testcase:add-cache-control] OK
+2024-01-19T22:35:27+09:00 [info] 1 testcases passed
 ```
 
 cfft executes `my-function` with `event.json` at CloudFront Functions in development stage.
@@ -221,51 +211,39 @@ testCases:
 If the result is different from the `expect.json`, cfft exits with a non-zero status code.
 
 ```console
-2023/12/23 15:11:33 [info] function my-function found
-2023/12/23 15:11:33 [info] function code is not changed
-2023/12/23 15:11:33 [info] testing function my-function with case add-cache-control...
-2023/12/23 15:11:33 [info] ComputeUtilization:31
-2023/12/23 15:11:33 [on the edge] Cache-Control header set.
-{
-  "response": {
-    "cookies": {},
-    "headers": {
-      "cache-control": {
-        "value": "public, max-age=63072000"
-      }
-    },
-    "statusCode": 200,
-    "statusDescription": "OK"
-  }
-}
+2024-01-19T22:39:33+09:00 [info] function my-function found
+2024-01-19T22:39:33+09:00 [info] function code or kvs association is changed, updating...
+2024-01-19T22:39:34+09:00 [info] [testcase:add-cache-control] testing function
+2024-01-19T22:39:35+09:00 [info] [testcase:add-cache-control] ComputeUtilization: 29
+2024-01-19T22:39:35+09:00 [info] [testcase:add-cache-control] [from:my-function] [on the edge] Cache-Control header set.
 --- expect
 +++ actual
-@@ -3,7 +3,7 @@
-     "cookies": {},
+@@ -4,7 +4,7 @@
+     "statusDescription": "OK",
      "headers": {
        "cache-control": {
 -        "value": "public, max-age=6307200"
 +        "value": "public, max-age=63072000"
        }
-     },
-     "statusCode": 200,
+     }
+   }
 
-2023/12/23 15:11:33 [error] failed to run test case add-cache-control, expect and actual are not equal
+2024-01-19T22:39:35+09:00 [error] failed to run test case add-cache-control, expect and actual are not equal
 ```
 
 expect.json
 ```json
 {
-    "response": {
-        "headers": {
-            "cache-control": {
-                "value": "public, max-age=6307200"
-            }
-        },
-        "statusDescription": "OK",
-        "cookies": {},
-        "statusCode": 200
-    }
+  "response": {
+    "headers": {
+      "cache-control": {
+        "value": "public, max-age=6307200"
+      }
+    },
+    "statusDescription": "OK",
+    "cookies": {},
+    "statusCode": 200
+  }
 }
 ```
 
@@ -352,6 +330,21 @@ The response object is converted to the following JSON object.
 }
 ```
 
+You can convert from HTTP text to JSON object with `cfft util parse-request` and `cfft util parse-response` commands.
+
+```console
+$ cfft util parse-request < request.txt
+{
+  "method": "GET",
+  "uri": "/index.html",
+  "headers": {
+    "host": {
+      "value": "example.com"
+    }
+  }
+}
+```
+
 For use of the text format, I recommend using YAML or Jsonnet format for the event and expect files instead of plain JSON. YAML and Jsonnet support multiline strings.
 
 ```yaml
@@ -402,7 +395,7 @@ kvs:
   name: hostnames
 ```
 
-If you specify the `kvs` element in the config file, cfft creates a KeyValueStore with the name, if not exsites, and associates the KeyValueStore with the function. You can use the KeyValueStore in the function code.
+If you specify the `kvs` element in the config file, `cfft test --create-if-missing` creates a KeyValueStore with the name if not exsites, and associates the KeyValueStore with the function. You can use the KeyValueStore in the function code.
 
 In a function code, the KVS id is available in the `KVS_ID` environment variable.
 
@@ -438,7 +431,7 @@ async function handler(event) {
 
 ```console
 $ cfft diff
-2023/12/23 17:57:17 [info] function cfft found
+2024-01-19T22:41:18+09:00 [info] function my-function found
 --- E3UN6WX5RRO2AG
 +++ function.js
 @@ -1,5 +1,5 @@
@@ -511,40 +504,40 @@ In `testCases`, `env` overrides the environment variables. These values are used
 event.json
 ```json
 {
-    "version": "1.0",
-    "context": {
-        "eventType": "viewer-request"
-    },
-    "viewer": {
-        "ip": "{{ env `IP` `127.0.0.2` }}"
-    },
-    "request": {
-        "method": "GET",
-        "uri": "/index.html",
-        "headers": {},
-        "cookies": {},
-        "querystring": {}
-    }
+  "version": "1.0",
+  "context": {
+    "eventType": "viewer-request"
+  },
+  "viewer": {
+    "ip": "{{ env `IP` `127.0.0.2` }}"
+  },
+  "request": {
+    "method": "GET",
+    "uri": "/index.html",
+    "headers": {},
+    "cookies": {},
+    "querystring": {}
+  }
 }
 ```
 
 expect.json
 ```json
 {
-    "request": {
-        "cookies": {},
-        "headers": {
-            "true-client-ip": {
-                "value": "{{ env `IP` `127.0.0.2` }}"
-            },
-            "x-hostname": {
-                "value": "{{ env `HOSTNAME` `unknown` }}"
-            }
-        },
-        "method": "GET",
-        "querystring": {},
-        "uri": "/index.html"
-    }
+  "request": {
+    "cookies": {},
+    "headers": {
+      "true-client-ip": {
+        "value": "{{ env `IP` `127.0.0.2` }}"
+      },
+      "x-hostname": {
+        "value": "{{ env `HOSTNAME` `unknown` }}"
+      }
+    },
+    "method": "GET",
+    "querystring": {},
+    "uri": "/index.html"
+  }
 }
 ```
 

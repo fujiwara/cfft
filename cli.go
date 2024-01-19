@@ -3,6 +3,8 @@ package cfft
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -21,7 +23,9 @@ type CLI struct {
 	Util    *UtilCmd    `cmd:"" help:"utility commands"`
 	Version *VersionCmd `cmd:"" help:"show version"`
 
-	Config string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
+	Config    string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
+	Debug     bool   `help:"enable debug log" default:"false"`
+	LogFormat string `help:"log format (text,json)" default:"text" enum:"text,json"`
 }
 
 type TestCmd struct {
@@ -68,6 +72,22 @@ func RunCLI(ctx context.Context, args []string) error {
 	if cmds[0] == "version" {
 		fmt.Println("cfft version", Version)
 		return nil
+	}
+	opt := &slog.HandlerOptions{
+		Level: logLevel,
+	}
+	switch cli.LogFormat {
+	case "text":
+		slog.SetDefault(slog.New(NewLogHandler(os.Stderr, opt)))
+	case "json":
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, opt)))
+	default:
+		return fmt.Errorf("invalid log format %s", cli.LogFormat)
+	}
+	if cli.Debug {
+		logLevel.Set(slog.LevelDebug)
+	} else {
+		logLevel.Set(slog.LevelInfo)
 	}
 
 	var config *Config

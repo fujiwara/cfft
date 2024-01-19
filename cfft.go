@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/aereal/jsondiff"
@@ -21,6 +22,8 @@ import (
 var Stage = types.FunctionStageDevelopment
 
 var Version = "dev"
+
+var logLevel = new(slog.LevelVar)
 
 type CFFT struct {
 	config     *Config
@@ -56,7 +59,7 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 		Name: aws.String(name),
 	})
 	if err == nil { // found
-		log.Printf("[info] kvs %s found", app.config.KVS.Name)
+		slog.Debug(f("kvs %s found", app.config.KVS.Name))
 		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
 		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
 		app.cfkvsArn = aws.ToString(res.KeyValueStore.ARN)
@@ -64,12 +67,12 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 	}
 	// not found
 	if !create {
-		log.Printf("[warn] failed to describe kvs %s, %s", name, err)
+		slog.Warn(f("failed to describe kvs %s, %s", name, err))
 		return fmt.Errorf("kvs %s not found. To create a new kvs, add --create-if-missing flag", name)
 	}
 
 	// create
-	log.Printf("[info] kvs %s not found, creating...", name)
+	slog.Info(f("kvs %s not found, creating...", name))
 	if res, err := app.cloudfront.CreateKeyValueStore(ctx, &cloudfront.CreateKeyValueStoreInput{
 		Name:    aws.String(name),
 		Comment: aws.String("created by cfft"),
@@ -90,7 +93,7 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 	retrier := policy.Start(ctx)
 	for retrier.Continue() {
 		if err := app.waitForKVSReady(ctx, name); err == nil {
-			log.Printf("[info] kvs %s created", name)
+			slog.Info(f("kvs %s created", name))
 			return nil
 		}
 	}
@@ -109,7 +112,7 @@ func (app *CFFT) waitForKVSReady(ctx context.Context, name string) error {
 		return nil
 	default:
 		err := fmt.Errorf("kvs %s is not ready yet. status: %s", name, s)
-		log.Printf("[info] %s", err)
+		slog.Info(err.Error())
 		return err
 	}
 }
@@ -127,20 +130,25 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 		return fmt.Errorf("failed to prepare function, %w", err)
 	}
 
+	var pass, fail int
 	for _, testCase := range app.config.TestCases {
 		if !opt.ShouldRun(testCase.Identifier()) {
-			log.Printf("[debug] skipping test case %s", testCase.Identifier())
+			slog.Debug(f("skipping test case %s", testCase.Identifier()))
 			continue
 		}
 		if err := app.runTestCase(ctx, app.config.Name, etag, testCase); err != nil {
+			fail++
 			return fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
+		} else {
+			pass++
 		}
 	}
+	slog.Info(f("%d testcases passed", pass))
 	return nil
 }
 
 func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (string, error) {
-	log.Printf("[info] creating function %s...", name)
+	slog.Info(f("creating function %s...", name))
 	var kvsassociation *types.KeyValueStoreAssociations
 	if app.cfkvsArn != "" {
 		kvsassociation = &types.KeyValueStoreAssociations{
@@ -162,7 +170,7 @@ func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (
 	if err != nil {
 		return "", fmt.Errorf("failed to create function, %w", err)
 	}
-	log.Printf("[info] function %s created", name)
+	slog.Info(f("function %s created", name))
 	return aws.ToString(res.ETag), nil
 }
 
@@ -180,7 +188,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		}
 		if createIfMissing {
-			log.Printf("[info] function %s not found", name)
+			slog.Info(f("function %s not found", name))
 			etag, err = app.createFunction(ctx, name, code)
 			if err != nil {
 				return "", fmt.Errorf("failed to create function, %w", err)
@@ -189,7 +197,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("function %s not found. To create a new function, add --create-if-missing flag", name)
 		}
 	} else {
-		log.Printf("[info] function %s found", name)
+		slog.Info(f("function %s found", name))
 		functionConfig = res.FunctionSummary.FunctionConfig
 		associated, err := app.associateKVS(ctx, functionConfig)
 		if err != nil {
@@ -205,12 +213,12 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			etag = aws.ToString(res.ETag)
 			if bytes.Equal(res.FunctionCode, code) {
 				if associated {
-					log.Println("[info] function code and kvs associated is not changed")
+					slog.Info("function code and kvs associated is not changed")
 				} else {
-					log.Println("[info] function code is not changed")
+					slog.Info("function code is not changed")
 				}
 			} else {
-				log.Println("[info] function code or kvs association is changed, updating...")
+				slog.Info("function code or kvs association is changed, updating...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
 					Name:           aws.String(name),
 					IfMatch:        aws.String(etag),
@@ -233,10 +241,10 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 		// no kvs
 		return false, nil
 	}
-	log.Println("[info] kvsArn:", app.cfkvsArn)
+	slog.Info(f("kvsArn: %s", app.cfkvsArn))
 	if fc.KeyValueStoreAssociations != nil {
 		for _, association := range fc.KeyValueStoreAssociations.Items {
-			log.Println("[info] associated kvs:", aws.ToString(association.KeyValueStoreARN))
+			slog.Info(f("associated kvs: %s", aws.ToString(association.KeyValueStoreARN)))
 			if aws.ToString(association.KeyValueStoreARN) == app.cfkvsArn {
 				associated = true
 			}
@@ -248,7 +256,7 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 		}
 	}
 	if !associated {
-		log.Printf("[info] associating kvs %s to function %s...", app.config.KVS.Name, app.config.Name)
+		slog.Info(f("associating kvs %s to function %s...", app.config.KVS.Name, app.config.Name))
 		fc.KeyValueStoreAssociations.Items =
 			append(
 				fc.KeyValueStoreAssociations.Items,
@@ -262,8 +270,9 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 }
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
-	log.Printf("[info] testing function %s with case %s...", name, c.Identifier())
-	log.Printf("[debug] event: %s", string(c.EventBytes()))
+	logger := slog.With("testcase", c.Identifier())
+	logger.Info("testing function")
+	logger.Debug(string(c.EventBytes()))
 	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
@@ -275,19 +284,30 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	var failed bool
 	if errMsg := aws.ToString(res.TestResult.FunctionErrorMessage); errMsg != "" {
-		log.Printf("[error][%s] %s", c.Identifier(), errMsg)
+		logger.Error(errMsg, "from", name)
 		failed = true
 	}
-	log.Printf("[info][%s] ComputeUtilization:%s", c.Identifier(), aws.ToString(res.TestResult.ComputeUtilization))
+	cu, err := strconv.Atoi(aws.ToString(res.TestResult.ComputeUtilization))
+	if err != nil {
+		return fmt.Errorf("failed to parse compute utilization, %w", err)
+	}
+	switch {
+	case 71 <= cu:
+		logger.Warn(f("ComputeUtilization: %d very close to or exceeds the maximum allowed time", cu))
+	case 51 <= cu:
+		logger.Warn(f("ComputeUtilization: %d nearing the maximum allowed time", cu))
+	default:
+		logger.Info(f("ComputeUtilization: %d optimal", cu))
+	}
 	for _, l := range res.TestResult.FunctionExecutionLogs {
-		log.Println(l)
+		logger.Info(l, "from", name)
 	}
 	out := *res.TestResult.FunctionOutput
 	if failed {
-		log.Printf("[info][%s] function output: %s", c.Identifier(), out)
+		logger.Info(f("failed. function output: %s", out))
 		return errors.New("test failed")
 	} else {
-		log.Printf("[debug][%s] function output: %s", c.Identifier(), out)
+		logger.Debug(f("succeded. function output: %s", out))
 	}
 	if c.expect == nil {
 		return nil
@@ -313,7 +333,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		fmt.Print(coloredDiff(diff))
 		return fmt.Errorf("expect and actual are not equal")
 	} else {
-		log.Printf("[info][%s] OK", c.Identifier())
+		logger.Info("OK")
 	}
 	return nil
 }

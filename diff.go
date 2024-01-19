@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -26,12 +26,12 @@ func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
 		if errors.As(err, &notFound) {
-			log.Printf("[info] function %s not found", name)
+			slog.Info(f("function %s not found", name))
 		} else {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
 	} else {
-		log.Printf("[info] function %s found", name)
+		slog.Info(f("function %s found", name))
 		remoteCode = res.FunctionCode
 	}
 

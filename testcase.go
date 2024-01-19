@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/itchyny/gojq"
@@ -69,7 +69,7 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 		if len(expectBytes) == 0 {
 			return fmt.Errorf("expect object is empty")
 		} else {
-			log.Printf("[debug] expect object: %s", string(expectBytes))
+			slog.Debug(f("expect object: %s", string(expectBytes)))
 		}
 		var expect CFFExpect
 		if err := json.Unmarshal(expectBytes, &expect); err != nil {
@@ -93,7 +93,8 @@ func localEnv(key, value string) func() {
 	prevValue, ok := os.LookupEnv(key)
 
 	if err := os.Setenv(key, value); err != nil {
-		log.Fatalf("cannot set environment variable: %v", err)
+		slog.Error("cannot set environment variable: %v", err)
+		panic(err)
 	}
 
 	if ok {
