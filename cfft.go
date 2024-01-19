@@ -59,7 +59,7 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 		Name: aws.String(name),
 	})
 	if err == nil { // found
-		slog.Info(f("kvs %s found", app.config.KVS.Name))
+		slog.Debug(f("kvs %s found", app.config.KVS.Name))
 		app.envs["KVS_ID"] = aws.ToString(res.KeyValueStore.Id)
 		app.envs["KVS_NAME"] = aws.ToString(res.KeyValueStore.Name)
 		app.cfkvsArn = aws.ToString(res.KeyValueStore.ARN)
@@ -266,8 +266,8 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
 	logger := slog.With("testcase", c.Identifier())
-	logger.Info(f("testing function %s", c.Identifier()))
-	logger.Debug("", "event", string(c.EventBytes()))
+	logger.Info("testing function")
+	logger.Debug(string(c.EventBytes()))
 	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 		Name:        aws.String(name),
 		IfMatch:     aws.String(etag),
@@ -288,9 +288,9 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	switch {
 	case 71 <= cu:
-		logger.Error(f("ComputeUtilization: %d", cu))
+		logger.Warn(f("ComputeUtilization: %d very close to or exceeds the maximum allowed time", cu))
 	case 51 <= cu:
-		logger.Warn(f("ComputeUtilization: %d", cu))
+		logger.Warn(f("ComputeUtilization: %d nearing the maximum allowed time", cu))
 	default:
 		logger.Info(f("ComputeUtilization: %d", cu))
 	}
@@ -299,10 +299,10 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	out := *res.TestResult.FunctionOutput
 	if failed {
-		logger.Info(f("function output: %s", out))
+		logger.Info(f("failed. function output: %s", out))
 		return errors.New("test failed")
 	} else {
-		logger.Debug(f("function output: %s", out))
+		logger.Debug(f("succeded. function output: %s", out))
 	}
 	if c.expect == nil {
 		return nil
