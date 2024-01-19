@@ -279,7 +279,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	var failed bool
 	if errMsg := aws.ToString(res.TestResult.FunctionErrorMessage); errMsg != "" {
-		logger.Error(errMsg, "src", app.config.Function)
+		logger.Error(errMsg, "from", name)
 		failed = true
 	}
 	cu, err := strconv.Atoi(aws.ToString(res.TestResult.ComputeUtilization))
@@ -295,7 +295,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		logger.Info(f("ComputeUtilization: %d", cu))
 	}
 	for _, l := range res.TestResult.FunctionExecutionLogs {
-		logger.Info(l, "src", app.config.Function)
+		logger.Info(l, "from", name)
 	}
 	out := *res.TestResult.FunctionOutput
 	if failed {
