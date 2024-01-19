@@ -131,6 +131,7 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 	}
 
 	var pass, fail int
+	var errs []error
 	for _, testCase := range app.config.TestCases {
 		if !opt.ShouldRun(testCase.Identifier()) {
 			slog.Debug(f("skipping test case %s", testCase.Identifier()))
@@ -138,12 +139,17 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 		}
 		if err := app.runTestCase(ctx, app.config.Name, etag, testCase); err != nil {
 			fail++
-			return fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
+			e := fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
+			slog.Error(e.Error())
+			errs = append(errs, e)
 		} else {
 			pass++
 		}
 	}
-	slog.Info(f("%d testcases passed", pass))
+	slog.Info(f("%d testcases passed, %d testcases failed", pass, fail))
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
 	return nil
 }
 
