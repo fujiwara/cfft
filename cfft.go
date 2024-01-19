@@ -130,15 +130,20 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 		return fmt.Errorf("failed to prepare function, %w", err)
 	}
 
+	var pass, fail int
 	for _, testCase := range app.config.TestCases {
 		if !opt.ShouldRun(testCase.Identifier()) {
 			slog.Debug(f("skipping test case %s", testCase.Identifier()))
 			continue
 		}
 		if err := app.runTestCase(ctx, app.config.Name, etag, testCase); err != nil {
+			fail++
 			return fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
+		} else {
+			pass++
 		}
 	}
+	slog.Info(f("%d testcases passed", pass))
 	return nil
 }
 
@@ -292,7 +297,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	case 51 <= cu:
 		logger.Warn(f("ComputeUtilization: %d nearing the maximum allowed time", cu))
 	default:
-		logger.Info(f("ComputeUtilization: %d", cu))
+		logger.Info(f("ComputeUtilization: %d optimal", cu))
 	}
 	for _, l := range res.TestResult.FunctionExecutionLogs {
 		logger.Info(l, "from", name)

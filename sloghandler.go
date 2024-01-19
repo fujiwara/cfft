@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 )
 
 type logHandler struct {
@@ -31,7 +32,7 @@ func (h *logHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *logHandler) Handle(ctx context.Context, record slog.Record) error {
 	buf := bytes.NewBuffer(nil)
-	fmt.Fprint(buf, record.Time.Format("2006-01-02T15:04:05.000Z"))
+	fmt.Fprint(buf, record.Time.Format(time.RFC3339))
 	fmt.Fprintf(buf, " [%s]", strings.ToLower(record.Level.String()))
 	if len(h.preformatted) > 0 {
 		buf.Write(h.preformatted)
