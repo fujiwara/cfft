@@ -46,6 +46,8 @@ Usage: cfft <command>
 Flags:
   -h, --help                  Show context-sensitive help.
   -c, --config="cfft.yaml"    config file
+      --debug                 enable debug log
+      --log-format="text"     log format (text,json)
 
 Commands:
   test
