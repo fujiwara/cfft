@@ -61,6 +61,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	name := opt.Name
 
 	var code []byte
+	var comment string
 	var kvsConfig *KeyValueStoreConfig
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
@@ -69,7 +70,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
 		if !errors.As(err, &notFound) {
-			return fmt.Errorf("failed to describe function, %w", err)
+			return fmt.Errorf("failed to get function, %w", err)
 		}
 		slog.Info(f("function %s not found. using default code for %s", name, opt.EventType))
 		code = DefaultFunctionCode(opt.EventType)
@@ -85,7 +86,9 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		if err != nil {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
-		if kvsass := res.FunctionSummary.FunctionConfig.KeyValueStoreAssociations; kvsass != nil {
+		fnConf := res.FunctionSummary.FunctionConfig
+		comment = aws.ToString(fnConf.Comment)
+		if kvsass := fnConf.KeyValueStoreAssociations; kvsass != nil {
 			for _, item := range kvsass.Items {
 				if kvsConfig != nil {
 					slog.Warn(f("function %s has multiple kvs associations. using %s", name, kvsConfig.Name))
@@ -117,6 +120,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	// create config file
 	config := &Config{
 		Name:     name,
+		Comment:  comment,
 		Function: "function.js",
 		KVS:      kvsConfig,
 		TestCases: []*TestCase{

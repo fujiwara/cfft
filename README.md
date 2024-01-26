@@ -80,6 +80,9 @@ Commands:
   render
     render function code
 
+  tf-data
+    output JSON for tf data source
+
   version
     show version
 
@@ -540,6 +543,50 @@ expect.json
     "querystring": {},
     "uri": "/index.html"
   }
+}
+```
+
+## Cooporate with Terraform
+
+cfft is desined to use with Terraform.
+
+`cfft tf-data` command outputs a JSON for Terraform [external data sources](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external).
+
+```console
+$ cfft tf-data
+{
+  "name": "some-function",
+  "code": "....(function code)....",
+  "comment": "comment of the function",
+  "runtime": "cloudfront-js-2.0",
+  "kvs_arn": "arn:aws:cloudfront::123456789012:key-value-store/xxxxxxxxxxxxxxxxxxxxxx"
+}
+```
+
+You can define the `aws_cloudfront_function` resource with the `data.external` data source calling `cfft tf-data`.
+
+When you run `terraform apply`, `cfft tf-data` is executed and the function is created or updated. If `publish` is true, Terraform will publish the function into the "LIVE" stage.
+
+```hcl
+resource "aws_cloudfront_function" "some-function" {
+  name    = data.external.beta-switcher.result["name"]
+  runtime = data.external.beta-switcher.result["runtime"]
+  code    = data.external.beta-switcher.result["code"]
+  comment = data.external.beta-switcher.result["comment"]
+  publish = true
+}
+
+data "external" "some-function" {
+  program = ["cfft", "--config", "cfft.yaml", "tf-data"]
+}
+```
+
+If you want to execute `cfft test` before `terraform apply`, or you use the KeyValueStore, `cfft test --create-if-missing` creates a KeyValueStore and associates the KeyValueStore with the function. In this case, you have to define the `import` block in a `.tf` file because the function is already created by cfft, but Terraform does not know the function. After `terraform apply`, you can remove the `import` block.
+
+```hcl
+import {
+  to = aws_cloudfront_function.some-function
+  id = "some-function"
 }
 ```
 
