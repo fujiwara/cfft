@@ -13,6 +13,7 @@ import (
 
 type Config struct {
 	Name      string               `json:"name" yaml:"name"`
+	Comment   string               `json:"comment" yaml:"comment"`
 	Function  string               `json:"function" yaml:"function"`
 	KVS       *KeyValueStoreConfig `json:"kvs" yaml:"kvs"`
 	TestCases []*TestCase          `json:"testCases" yaml:"testCases"`

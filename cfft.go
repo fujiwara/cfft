@@ -75,7 +75,7 @@ func (app *CFFT) prepareKVS(ctx context.Context, create bool) error {
 	slog.Info(f("kvs %s not found, creating...", name))
 	if res, err := app.cloudfront.CreateKeyValueStore(ctx, &cloudfront.CreateKeyValueStoreInput{
 		Name:    aws.String(name),
-		Comment: aws.String("created by cfft"),
+		Comment: aws.String(app.config.Comment),
 	}); err != nil {
 		return fmt.Errorf("failed to create kvs %s, %w", name, err)
 	} else {
@@ -168,7 +168,7 @@ func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (
 		Name:         aws.String(name),
 		FunctionCode: code,
 		FunctionConfig: &types.FunctionConfig{
-			Comment:                   aws.String("created by cfft"),
+			Comment:                   aws.String(app.config.Comment),
 			Runtime:                   types.FunctionRuntimeCloudfrontJs20,
 			KeyValueStoreAssociations: kvsassociation,
 		},
