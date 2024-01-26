@@ -546,7 +546,7 @@ expect.json
 }
 ```
 
-## Cooporate with Terraform
+## Cooperate with Terraform
 
 cfft is desined to use with Terraform.
 
