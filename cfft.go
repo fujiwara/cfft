@@ -207,6 +207,15 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 	} else {
 		slog.Info(f("function %s found", name))
 		functionConfig = res.FunctionSummary.FunctionConfig
+		updateFunctionConfig := false
+		if aws.ToString(functionConfig.Comment) != app.config.Comment {
+			functionConfig.Comment = aws.String(app.config.Comment)
+			updateFunctionConfig = true
+		}
+		if functionConfig.Runtime != app.config.Runtime {
+			functionConfig.Runtime = app.config.Runtime
+			updateFunctionConfig = true
+		}
 		associated, err := app.associateKVS(ctx, functionConfig)
 		if err != nil {
 			return "", fmt.Errorf("failed to associate kvs, %w", err)
@@ -219,14 +228,8 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		} else {
 			etag = aws.ToString(res.ETag)
-			if bytes.Equal(res.FunctionCode, code) {
-				if associated {
-					slog.Info("function code and kvs associated is not changed")
-				} else {
-					slog.Info("function code is not changed")
-				}
-			} else {
-				slog.Info("function code or kvs association is changed, updating...")
+			if !bytes.Equal(res.FunctionCode, code) || updateFunctionConfig {
+				slog.Info("function is changed, updating...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
 					Name:           aws.String(name),
 					IfMatch:        aws.String(etag),
@@ -237,6 +240,10 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 					return "", fmt.Errorf("failed to update function, %w", err)
 				}
 				etag = aws.ToString(res.ETag)
+			} else if associated {
+				slog.Info("function and kvs associated is not changed")
+			} else {
+				slog.Info("function is not changed")
 			}
 		}
 	}
