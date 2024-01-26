@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-jsonnet"
 	goconfig "github.com/kayac/go-config"
 )
 
 type Config struct {
-	Name      string               `json:"name" yaml:"name"`
-	Comment   string               `json:"comment" yaml:"comment"`
-	Function  string               `json:"function" yaml:"function"`
-	KVS       *KeyValueStoreConfig `json:"kvs" yaml:"kvs"`
-	TestCases []*TestCase          `json:"testCases" yaml:"testCases"`
+	Name      string                `json:"name" yaml:"name"`
+	Comment   string                `json:"comment" yaml:"comment"`
+	Function  string                `json:"function" yaml:"function"`
+	Runtime   types.FunctionRuntime `json:"runtime" yaml:"runtime"`
+	KVS       *KeyValueStoreConfig  `json:"kvs,omitempty" yaml:"kvs,omitempty"`
+	TestCases []*TestCase           `json:"testCases" yaml:"testCases"`
 
 	functionCode []byte
 	dir          string
@@ -83,6 +85,20 @@ func LoadConfig(ctx context.Context, path string) (*Config, error) {
 	}
 	if config.Function == "" {
 		return nil, fmt.Errorf("function is required")
+	}
+
+	// validate runtime
+	switch config.Runtime {
+	case "":
+		config.Runtime = DefaultRuntime
+	case types.FunctionRuntimeCloudfrontJs10:
+		if config.KVS != nil {
+			return nil, fmt.Errorf("kvs is not supported for runtime %s", config.Runtime)
+		}
+	case types.FunctionRuntimeCloudfrontJs20: // == Default
+		// ok
+	default:
+		return nil, fmt.Errorf("invalid runtime %s", config.Runtime)
 	}
 
 	for i, tc := range config.TestCases {
