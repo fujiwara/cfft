@@ -29,7 +29,7 @@ func (app *CFFT) RunTFData(ctx context.Context, opt *TFDataCmd) error {
 		Name:    app.config.Name,
 		Code:    string(localCode),
 		Comment: app.config.Comment,
-		Runtime: types.FunctionRuntimeCloudfrontJs20,
+		Runtime: app.config.Runtime,
 		KVSArn:  app.cfkvsArn,
 	}
 	enc := json.NewEncoder(os.Stdout)

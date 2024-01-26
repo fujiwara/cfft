@@ -25,6 +25,8 @@ var Version = "dev"
 
 var logLevel = new(slog.LevelVar)
 
+const DefaultRuntime = types.FunctionRuntimeCloudfrontJs20
+
 type CFFT struct {
 	config     *Config
 	cloudfront *cloudfront.Client
@@ -169,7 +171,7 @@ func (app *CFFT) createFunction(ctx context.Context, name string, code []byte) (
 		FunctionCode: code,
 		FunctionConfig: &types.FunctionConfig{
 			Comment:                   aws.String(app.config.Comment),
-			Runtime:                   types.FunctionRuntimeCloudfrontJs20,
+			Runtime:                   app.config.Runtime,
 			KeyValueStoreAssociations: kvsassociation,
 		},
 	})

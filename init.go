@@ -62,6 +62,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 
 	var code []byte
 	var comment string
+	runtime := DefaultRuntime
 	var kvsConfig *KeyValueStoreConfig
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
@@ -88,7 +89,10 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		}
 		fnConf := res.FunctionSummary.FunctionConfig
 		comment = aws.ToString(fnConf.Comment)
-		if kvsass := fnConf.KeyValueStoreAssociations; kvsass != nil {
+		runtime = fnConf.Runtime
+		if kvsass := fnConf.KeyValueStoreAssociations; kvsass == nil {
+			slog.Info(f("function %s has no kvs association", name))
+		} else {
 			for _, item := range kvsass.Items {
 				if kvsConfig != nil {
 					slog.Warn(f("function %s has multiple kvs associations. using %s", name, kvsConfig.Name))
@@ -121,6 +125,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	config := &Config{
 		Name:     name,
 		Comment:  comment,
+		Runtime:  runtime,
 		Function: "function.js",
 		KVS:      kvsConfig,
 		TestCases: []*TestCase{
