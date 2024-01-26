@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/goccy/go-yaml"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
@@ -17,6 +18,53 @@ import (
 type DiffCmd struct{}
 
 func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
+	if err := app.diffFunctionConfig(ctx); err != nil {
+		return err
+	}
+	if err := app.diffFunctionCode(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (app *CFFT) diffFunctionConfig(ctx context.Context) error {
+	name := app.config.Name
+	var remoteConfig *types.FunctionConfig
+	var remote string
+	res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
+		Name:  aws.String(name),
+		Stage: Stage,
+	})
+	if err != nil {
+		var notFound *types.NoSuchFunctionExists
+		if errors.As(err, &notFound) {
+			slog.Info(f("function %s not found", name))
+		} else {
+			return fmt.Errorf("failed to describe function, %w", err)
+		}
+	} else {
+		slog.Debug(f("function %s found", name))
+		remoteConfig = res.FunctionSummary.FunctionConfig
+		remoteConfig.KeyValueStoreAssociations = nil // ignore kvs association
+		remote = aws.ToString(res.ETag)
+	}
+
+	localConfig := &types.FunctionConfig{
+		Comment: aws.String(app.config.Comment),
+		Runtime: app.config.Runtime,
+	}
+	local := app.config.path
+
+	remoteCode, _ := yaml.Marshal(remoteConfig)
+	localCode, _ := yaml.Marshal(localConfig)
+
+	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
+	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))
+	fmt.Print(coloredDiff(out))
+	return nil
+}
+
+func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 	name := app.config.Name
 	var remoteCode []byte
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
@@ -31,7 +79,7 @@ func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}
 	} else {
-		slog.Info(f("function %s found", name))
+		slog.Debug(f("function %s found", name))
 		remoteCode = res.FunctionCode
 	}
 
@@ -48,6 +96,5 @@ func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
 	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))
 	fmt.Print(coloredDiff(out))
-
 	return nil
 }

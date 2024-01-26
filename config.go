@@ -22,6 +22,7 @@ type Config struct {
 
 	functionCode []byte
 	dir          string
+	path         string
 	loader       *goconfig.Loader
 }
 
@@ -70,6 +71,7 @@ func (c *Config) FunctionCode() ([]byte, error) {
 func LoadConfig(ctx context.Context, path string) (*Config, error) {
 	config := &Config{
 		loader: goconfig.New(),
+		path:   path,
 	}
 	b, err := ReadFile(path)
 	if err != nil {
