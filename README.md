@@ -14,9 +14,9 @@ cfft supports the following features.
 - Ignore fields in the expect object.
 - Diff function code.
 - Publish function.
-- Output JSON for Terraform.
+- Output JSON for Terraform. See [Cooperate with Terraform](#cooperate-with-terraform).
 
-cfft supports management of [CloudFront KeyValueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html).
+cfft supports management of [CloudFront KeyValueStore](https://docs.aws.amazon.com/ja_jp/AmazonCloudFront/latest/DeveloperGuide/kvs-with-functions.html). See [Use CloudFront KeyValueStore](#use-cloudfront-keyvaluestore).
 
 ## Install
 
