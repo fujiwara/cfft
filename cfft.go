@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 	"strconv"
 	"time"
 
@@ -33,12 +35,18 @@ type CFFT struct {
 	cfkvs      *cloudfrontkeyvaluestore.Client
 	cfkvsArn   string
 	envs       map[string]string
+	stdout     io.Writer
+}
+
+func (app *CFFT) SetStdout(w io.Writer) {
+	app.stdout = w
 }
 
 func New(ctx context.Context, config *Config) (*CFFT, error) {
 	app := &CFFT{
 		config: config,
 		envs:   map[string]string{},
+		stdout: os.Stdout,
 	}
 
 	// CloudFront region is fixed to us-east-1

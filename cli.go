@@ -21,7 +21,7 @@ type CLI struct {
 	KVS     *KVSCmd     `cmd:"" help:"manage key-value store"`
 	Render  *RenderCmd  `cmd:"" help:"render function code"`
 	Util    *UtilCmd    `cmd:"" help:"utility commands"`
-	TFData  *TFDataCmd  `cmd:"tf-data" help:"output JSON for tf data source"`
+	TF      *TFCmd      `cmd:"tf" help:"output JSON for tf.json or external data source"`
 	Version *VersionCmd `cmd:"" help:"show version"`
 
 	Config    string `short:"c" long:"config" help:"config file" default:"cfft.yaml"`
@@ -135,12 +135,12 @@ func (app *CFFT) Dispatch(ctx context.Context, cmds []string, cli *CLI) error {
 		return app.ManageKVS(ctx, cmds[1], cli.KVS)
 	case "util":
 		return app.RunUtil(ctx, cmds[1], cli.Util)
-	case "tf-data":
-		return app.RunTFData(ctx, cli.TFData)
+	case "tf":
+		return app.RunTF(ctx, cli.TF)
 	case "version":
 		//
 	default:
-		return nil
+		panic("unknown command " + cmds[0])
 	}
 	return nil
 }
