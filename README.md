@@ -637,10 +637,10 @@ When you run `terraform apply`, `cfft tf-data` is executed and the function is c
 
 ```hcl
 resource "aws_cloudfront_function" "some-function" {
-  name    = data.external.beta-switcher.result["name"]
-  runtime = data.external.beta-switcher.result["runtime"]
-  code    = data.external.beta-switcher.result["code"]
-  comment = data.external.beta-switcher.result["comment"]
+  name    = data.external.some-function.result["name"]
+  runtime = data.external.some-function.result["runtime"]
+  code    = data.external.some-function.result["code"]
+  comment = data.external.some-function.result["comment"]
   publish = true
 }
 
