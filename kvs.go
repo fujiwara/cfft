@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -61,7 +60,7 @@ func (app *CFFT) KVSList(ctx context.Context, opt *KVSCmd) error {
 		KvsARN:     aws.String(app.cfkvsArn),
 		MaxResults: aws.Int32(50),
 	})
-	buf := bufio.NewWriter(os.Stdout)
+	buf := bufio.NewWriter(app.stdout)
 	var items int32
 PAGES:
 	for p.HasMorePages() {
@@ -96,7 +95,7 @@ func (app *CFFT) KVSGet(ctx context.Context, opt *KVSCmd) error {
 	if err != nil {
 		return fmt.Errorf("failed to format item, %w", err)
 	}
-	fmt.Fprint(os.Stdout, s)
+	fmt.Fprint(app.stdout, s)
 	return nil
 }
 
@@ -148,14 +147,14 @@ func (app *CFFT) KVSInfo(ctx context.Context, opt *KVSCmd) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal kvs, %w", err)
 		}
-		fmt.Fprintln(os.Stdout, string(b))
+		fmt.Fprintln(app.stdout, string(b))
 	case "text":
-		fmt.Fprintf(os.Stdout, "KvsARN\t%s\n", aws.ToString(res.KvsARN))
-		fmt.Fprintf(os.Stdout, "ETag\t%s\n", aws.ToString(res.ETag))
-		fmt.Fprintf(os.Stdout, "ItemCount\t%d\n", aws.ToInt32(res.ItemCount))
-		fmt.Fprintf(os.Stdout, "TotalSizeInBytes\t%d\n", aws.ToInt64(res.TotalSizeInBytes))
-		fmt.Fprintf(os.Stdout, "Created\t%s\n", res.Created.Format(time.RFC3339))
-		fmt.Fprintf(os.Stdout, "LastModified\t%s\n", res.LastModified.Format(time.RFC3339))
+		fmt.Fprintf(app.stdout, "KvsARN\t%s\n", aws.ToString(res.KvsARN))
+		fmt.Fprintf(app.stdout, "ETag\t%s\n", aws.ToString(res.ETag))
+		fmt.Fprintf(app.stdout, "ItemCount\t%d\n", aws.ToInt32(res.ItemCount))
+		fmt.Fprintf(app.stdout, "TotalSizeInBytes\t%d\n", aws.ToInt64(res.TotalSizeInBytes))
+		fmt.Fprintf(app.stdout, "Created\t%s\n", res.Created.Format(time.RFC3339))
+		fmt.Fprintf(app.stdout, "LastModified\t%s\n", res.LastModified.Format(time.RFC3339))
 	}
 	return nil
 }

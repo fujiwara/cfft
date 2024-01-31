@@ -48,7 +48,7 @@ func (app *CFFT) UtilParseRequest(ctx context.Context, opt ParseRequestCmd) erro
 	if err != nil {
 		return fmt.Errorf("failed to parse request, %w", err)
 	}
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(app.stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(req)
 }
@@ -62,7 +62,7 @@ func (app *CFFT) UtilParseResponse(ctx context.Context, opt ParseResponseCmd) er
 	if err != nil {
 		return fmt.Errorf("failed to parse response, %w", err)
 	}
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(app.stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(resp)
 }
