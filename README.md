@@ -558,7 +558,7 @@ cfft has two methods to cooperate with Terraform, `cfft tf` generates tf.json, a
 `cfft tf` command outputs a JSON defines a Terraform [aws_cloudfront_function](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_function) resource. The JSON file is read by Terraform as [JSON Configuration Syntax](https://developer.hashicorp.com/terraform/language/syntax/json).
 
 ```console
-$ cfft tf --publish > cff.tf.json
+$ cfft tf > cff.tf.json
 ```
 
 cff.tf.json
@@ -572,14 +572,13 @@ cff.tf.json
         "runtime": "cloudfront-js-2.0",
         "code": "....(function code)....",
         "comment": "comment of the function",
-        "publish": true
       }
     }
   }
 }
 ```
 
-Terraform creates or updates the function with the JSON.
+Terraform creates or updates the function with the JSON. If you want to publish the function into the "LIVE" stage by `terraform apply`, set `cfft tf --publish` flag.
 
 If you want to run `cfft test` before `terraform (plan|apply)`, execute `cfft test --create-if-missing` to create a function in the DEVELOPMENT stage.
 
@@ -622,7 +621,7 @@ The variable's default value is not parsed as Terraform's interpolation syntax. 
 `cfft tf --external` command outputs a JSON for Terraform [external data sources](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external).
 
 ```console
-$ cfft tf-data
+$ cfft tf --external
 {
   "name": "some-function",
   "code": "....(function code)....",
@@ -633,7 +632,7 @@ $ cfft tf-data
 
 You can define the `aws_cloudfront_function` resource with the `data.external` data source calling `cfft tf-data`.
 
-When you run `terraform apply`, `cfft tf-data` is executed and the function is created or updated. If `publish` is true, Terraform will publish the function into the "LIVE" stage.
+When you run `terraform apply`, `cfft tf --external` is executed and the function is created or updated. If `publish` is true, Terraform will publish the function into the "LIVE" stage.
 
 ```hcl
 resource "aws_cloudfront_function" "some-function" {
@@ -645,7 +644,7 @@ resource "aws_cloudfront_function" "some-function" {
 }
 
 data "external" "some-function" {
-  program = ["cfft", "--config", "cfft.yaml", "tf-data"]
+  program = ["cfft", "--config", "cfft.yaml", "tf", "--external"]
 }
 ```
 
