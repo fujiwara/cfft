@@ -630,7 +630,7 @@ $ cfft tf --external
 }
 ```
 
-You can define the `aws_cloudfront_function` resource with the `data.external` data source calling `cfft tf-data`.
+You can define the `aws_cloudfront_function` resource with the `data.external` data source calling `cfft tf --external`.
 
 When you run `terraform apply`, `cfft tf --external` is executed and the function is created or updated. If `publish` is true, Terraform will publish the function into the "LIVE" stage.
 
