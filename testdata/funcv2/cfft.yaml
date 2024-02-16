@@ -1,0 +1,10 @@
+name: simple-v2
+comment: ""
+function: function.js
+runtime: cloudfront-js-2.0
+testCases:
+- name: default
+  event: event.json
+  expect: ""
+  ignore: ""
+  env: {}
