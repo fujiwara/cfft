@@ -626,13 +626,15 @@ $ cfft tf --external
   "name": "some-function",
   "code": "....(function code)....",
   "comment": "comment of the function",
-  "runtime": "cloudfront-js-2.0",
+  "runtime": "cloudfront-js-2.0"
 }
 ```
 
 You can define the `aws_cloudfront_function` resource with the `data.external` data source calling `cfft tf --external`.
 
 When you run `terraform apply`, `cfft tf --external` is executed and the function is created or updated. If `publish` is true, Terraform will publish the function into the "LIVE" stage.
+
+Note: `cfft tf --external` does not output a `publish` attribute because the external data source does not accept non-string values.
 
 ```hcl
 resource "aws_cloudfront_function" "some-function" {
