@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 )
 
@@ -34,11 +33,11 @@ type TFCFF struct {
 }
 
 type TFOutout struct {
-	Name    string                `json:"name,omitempty"`
-	Code    string                `json:"code,omitempty"`
-	Runtime types.FunctionRuntime `json:"runtime,omitempty"`
-	Comment string                `json:"comment,omitempty"`
-	Publish bool                  `json:"publish,omitempty"`
+	Name    string                `json:"name"`
+	Code    string                `json:"code"`
+	Runtime types.FunctionRuntime `json:"runtime"`
+	Comment string                `json:"comment"`
+	Publish *bool                 `json:"publish,omitempty"`
 }
 
 func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
@@ -58,10 +57,11 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 	if opt.External {
 		// for external data source
 		out.Code = localCode
+		out.Publish = nil // external data source does not allows boolean value
 		return enc.Encode(out)
 	} else {
 		// output tf.json
-		out.Publish = aws.ToBool(opt.Publish) // Publish flag is only for tf.json
+		out.Publish = opt.Publish // Publish flag is only for tf.json
 		resource := TFJSON{
 			Comment: TFJSONComment,
 		}
