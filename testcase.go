@@ -28,6 +28,18 @@ type CFFExpect struct {
 	Reponse *CFFResponse `json:"response,omitempty"`
 }
 
+func (e *CFFExpect) ToMap() map[string]any {
+	b, err := json.Marshal(e)
+	if err != nil {
+		panic(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		panic(err)
+	}
+	return m
+}
+
 func (c *TestCase) EventBytes() []byte {
 	return c.event.Bytes()
 }
