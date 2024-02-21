@@ -1,6 +1,9 @@
 # Changelog
 
 =======
+## [v0.5.2](https://github.com/fujiwara/cfft/compare/v0.5.1...v0.5.2) - 2024-02-21
+- fix ignore feature. by @fujiwara in https://github.com/fujiwara/cfft/pull/32
+
 ## [v0.2.0](https://github.com/fujiwara/cfft/compare/v0.1.0...v0.2.0) - 2024-01-18
 - Add render sub command. by @fujiwara in https://github.com/fujiwara/cfft/pull/14
 - wait for kvs ready after creation. by @fujiwara in https://github.com/fujiwara/cfft/pull/15
