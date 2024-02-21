@@ -336,8 +336,8 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		return nil
 	}
 
-	var result CFFExpect
-	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), &result); err != nil {
+	result := &CFFExpect{}
+	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), result); err != nil {
 		return fmt.Errorf("failed to parse function output, %w", err)
 	}
 	var options []jsondiff.Option
@@ -345,8 +345,8 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		options = append(options, jsondiff.Ignore(c.ignore))
 	}
 	diff, err := jsondiff.Diff(
-		&jsondiff.Input{Name: "expect", X: c.expect},
-		&jsondiff.Input{Name: "actual", X: result},
+		&jsondiff.Input{Name: "expect", X: c.expect.ToMap()},
+		&jsondiff.Input{Name: "actual", X: result.ToMap()},
 		options...,
 	)
 	if err != nil {
