@@ -2,9 +2,11 @@ package cfft
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/goccy/go-yaml"
@@ -12,10 +14,43 @@ import (
 	goconfig "github.com/kayac/go-config"
 )
 
+const ChainTemplate = `
+const %s = async function (event) {
+    %s
+    return handler(event);
+}
+`
+
+const MainTemplateRequest = `
+async function handler(event) {
+	const fns = [%s];
+	for (let i = 0; i < fns.length; i++) {
+		const res = await fns[i](event);
+		if (res && res.statusCode) {
+			// when viewer-request returns response object, return it immediately
+			return res;
+		}
+		event.request = res;
+	}
+	return event.request;
+}
+`
+
+const MainTemplateResponse = `
+async function handler(event) {
+	const fns = [%s];
+	for (let i = 0; i < fns.length; i++) {
+		event.response = await fns[i](event);
+	}
+	return event.response;
+}
+`
+
 type Config struct {
 	Name      string                `json:"name" yaml:"name"`
 	Comment   string                `json:"comment" yaml:"comment"`
-	Function  string                `json:"function" yaml:"function"`
+	Function  string                `json:"function" yaml:"function,omitempty"`
+	Chain     *ConfigChain          `json:"chain,omitempty" yaml:"chain,omitempty"`
 	Runtime   types.FunctionRuntime `json:"runtime" yaml:"runtime"`
 	KVS       *KeyValueStoreConfig  `json:"kvs,omitempty" yaml:"kvs,omitempty"`
 	TestCases []*TestCase           `json:"testCases" yaml:"testCases"`
@@ -24,6 +59,11 @@ type Config struct {
 	dir          string
 	path         string
 	loader       *goconfig.Loader
+}
+
+type ConfigChain struct {
+	EventType string   `json:"event_type" yaml:"event_type"`
+	Functions []string `json:"functions" yaml:"functions"`
 }
 
 // ReadFile supports jsonnet and yaml files. If the file is jsonnet or yaml, it will be evaluated and converted to json.
@@ -60,12 +100,40 @@ func (c *Config) FunctionCode() ([]byte, error) {
 	if c.functionCode != nil {
 		return c.functionCode, nil
 	}
-	b, err := c.ReadFile(c.Function)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read function file %s, %w", c.Function, err)
+	if c.Function != "" {
+		b, err := c.ReadFile(c.Function)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read function file %s, %w", c.Function, err)
+		}
+		c.functionCode = b
+		return b, nil
+	} else if c.Chain != nil {
+		// chain
+		funcNames := make([]string, 0, len(c.Chain.Functions))
+		codes := make([]string, 0, len(c.Chain.Functions))
+		for _, cf := range c.Chain.Functions {
+			b, err := c.ReadFile(cf)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read chain function file %s, %w", cf, err)
+			}
+			name := fmt.Sprintf("__chain_%x", md5.Sum(b))
+			codes = append(codes, fmt.Sprintf(ChainTemplate, name, string(b)))
+			funcNames = append(funcNames, name)
+		}
+		var main string
+		switch c.Chain.EventType {
+		case "viewer-request":
+			main = fmt.Sprintf(MainTemplateRequest, strings.Join(funcNames, ", "))
+		case "viewer-response":
+			main = fmt.Sprintf(MainTemplateResponse, strings.Join(funcNames, ", "))
+		default:
+			return nil, fmt.Errorf("invalid chain event_type %s", c.Chain.EventType)
+		}
+		c.functionCode = []byte(strings.Join(codes, "\n") + main)
+		return c.functionCode, nil
+	} else {
+		return nil, fmt.Errorf("function or chain_functions is required")
 	}
-	c.functionCode = b
-	return b, nil
 }
 
 func LoadConfig(ctx context.Context, path string) (*Config, error) {
@@ -85,8 +153,11 @@ func LoadConfig(ctx context.Context, path string) (*Config, error) {
 	if config.Name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
-	if config.Function == "" {
-		return nil, fmt.Errorf("function is required")
+	if config.Function == "" && config.Chain == nil {
+		return nil, fmt.Errorf("function or chain is required")
+	}
+	if config.Chain != nil && config.Runtime != types.FunctionRuntimeCloudfrontJs20 {
+		return nil, fmt.Errorf("chain is only supported for runtime %s", types.FunctionRuntimeCloudfrontJs20)
 	}
 
 	// validate runtime

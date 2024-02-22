@@ -196,6 +196,8 @@ $ cfft test
 
 cfft executes `my-function` with `event.json` at CloudFront Functions in development stage.
 
+About an event object, see also [CloudFront Functions event structure](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-event-structure.html).
+
 - If my-function is not found, `cfft test --create-if-missing` creates a new function with the name and runtime `cloudfront-js-2.0`.
 - If the function is found and the code is different from the `function.js`, cfft updates the function code.
 - Shows logs and compute utilization of the function after the execution.
@@ -388,6 +390,38 @@ response: |
   |||,
 }
 ```
+
+### Chain multiple functions
+
+cfft supports chaining multiple functions.
+
+```yaml
+# cfft.yaml
+name: my-function
+runtime: cloudfront-js-2.0
+chain:
+  event-type: viewer-request
+  functions:
+    - function1.js
+    - function2.js
+testCases:
+## ...
+```
+
+- `chain` element specifies the chain of functions.
+  - `event-type` must be `viewer-request` or `viewer-response`. required.
+  - `functions` element is an array of function files.
+
+When you specify the `chain` element instead of `function`, cfft creates a combined function with the `chain.functions` automatically.
+
+The combined function works as the following steps.
+1. The first function in the `functions` array is evaluated.
+2. The result of the first function is passed to the second function.
+3. ...(repeat)
+
+When the event-type is `viewer-response` and any step returns a response object(includes `statusCode`), the response object is returned to the viewer immidiately.
+
+You can review the generated combined function code with `cfft render` command.
 
 ### Use CloudFront KeyValueStore
 
