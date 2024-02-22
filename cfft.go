@@ -156,7 +156,11 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 			pass++
 		}
 	}
-	slog.Info(f("%d testcases passed, %d testcases failed", pass, fail))
+	if fail > 0 {
+		slog.Info(f("%d testcases passed, %d testcases failed", pass, fail))
+	} else {
+		slog.Info(f("%d testcases passed", pass))
+	}
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -310,6 +314,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		logger.Error(errMsg, "from", name)
 		failed = true
 	}
+	logger.Debug(f("result: %v", res.TestResult))
 	cu, err := strconv.Atoi(aws.ToString(res.TestResult.ComputeUtilization))
 	if err != nil {
 		return fmt.Errorf("failed to parse compute utilization, %w", err)
@@ -327,14 +332,17 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	out := *res.TestResult.FunctionOutput
 	if failed {
-		logger.Info(f("failed. function output: %s", out))
+		logger.Info(f("TestFunction API failed. function output: %s", out))
 		return errors.New("test failed")
 	} else {
-		logger.Debug(f("succeded. function output: %s", out))
+		logger.Info("TestFunction API succeeded")
+		logger.Debug(f("function output: %s", out))
 	}
 	if c.expect == nil {
+		logger.Info("no expected value. skipping checking function output")
 		return nil
 	}
+	logger.Info("checking function output with expected value")
 
 	result := &CFFExpect{}
 	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), result); err != nil {
@@ -356,7 +364,7 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		fmt.Print(coloredDiff(diff))
 		return fmt.Errorf("expect and actual are not equal")
 	} else {
-		logger.Info("OK")
+		logger.Info("expect and actual are equal")
 	}
 	return nil
 }
