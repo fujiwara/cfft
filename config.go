@@ -22,6 +22,8 @@ const %s = async function (event) {
 `
 
 const MainTemplateRequest = `
+%s
+
 async function handler(event) {
 	const fns = [%s];
 	for (let i = 0; i < fns.length; i++) {
@@ -37,6 +39,8 @@ async function handler(event) {
 `
 
 const MainTemplateResponse = `
+%s
+
 async function handler(event) {
 	const fns = [%s];
 	for (let i = 0; i < fns.length; i++) {
@@ -111,6 +115,7 @@ func (c *Config) FunctionCode() ([]byte, error) {
 		// chain
 		funcNames := make([]string, 0, len(c.Chain.Functions))
 		codes := make([]string, 0, len(c.Chain.Functions))
+		var imports []string
 		for _, cf := range c.Chain.Functions {
 			b, err := c.ReadFile(cf)
 			if err != nil {
@@ -118,14 +123,15 @@ func (c *Config) FunctionCode() ([]byte, error) {
 			}
 			name := fmt.Sprintf("__chain_%x", md5.Sum(b))
 			codes = append(codes, fmt.Sprintf(ChainTemplate, name, string(b)))
+			imports = append(imports, grepImports(string(b))...)
 			funcNames = append(funcNames, name)
 		}
 		var main string
 		switch c.Chain.EventType {
 		case "viewer-request":
-			main = fmt.Sprintf(MainTemplateRequest, strings.Join(funcNames, ", "))
+			main = fmt.Sprintf(MainTemplateRequest, strings.Join(imports, "\n"), strings.Join(funcNames, ", "))
 		case "viewer-response":
-			main = fmt.Sprintf(MainTemplateResponse, strings.Join(funcNames, ", "))
+			main = fmt.Sprintf(MainTemplateResponse, strings.Join(imports, "\n"), strings.Join(funcNames, ", "))
 		default:
 			return nil, fmt.Errorf("invalid chain event_type %s", c.Chain.EventType)
 		}
@@ -185,4 +191,14 @@ func LoadConfig(ctx context.Context, path string) (*Config, error) {
 
 type KeyValueStoreConfig struct {
 	Name string `json:"name" yaml:"name"`
+}
+
+func grepImports(s string) []string {
+	var imports []string
+	for _, line := range strings.Split(s, "\n") {
+		if strings.HasPrefix(line, "import ") {
+			imports = append(imports, line)
+		}
+	}
+	return imports
 }
