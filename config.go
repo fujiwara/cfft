@@ -122,8 +122,9 @@ func (c *Config) FunctionCode() ([]byte, error) {
 				return nil, fmt.Errorf("failed to read chain function file %s, %w", cf, err)
 			}
 			name := fmt.Sprintf("__chain_%x", md5.Sum(b))
-			codes = append(codes, fmt.Sprintf(ChainTemplate, name, string(b)))
-			imports = append(imports, grepImports(string(b))...)
+			imp, code := grepImports(string(b))
+			codes = append(codes, fmt.Sprintf(ChainTemplate, name, code))
+			imports = append(imports, imp)
 			funcNames = append(funcNames, name)
 		}
 		var main string
@@ -193,12 +194,16 @@ type KeyValueStoreConfig struct {
 	Name string `json:"name" yaml:"name"`
 }
 
-func grepImports(s string) []string {
+func grepImports(s string) (string, string) {
 	var imports []string
+	var code []string
 	for _, line := range strings.Split(s, "\n") {
-		if strings.HasPrefix(line, "import ") {
+		l := strings.TrimSpace(line)
+		if strings.HasPrefix(l, "import ") {
 			imports = append(imports, line)
+		} else {
+			code = append(code, line)
 		}
 	}
-	return imports
+	return strings.Join(imports, "\n"), strings.Join(code, "\n")
 }
