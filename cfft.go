@@ -298,24 +298,42 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 
 func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
 	logger := slog.With("testcase", c.Identifier())
-	logger.Info("testing function")
+	logger.Info("testing function", "etag", etag)
 	logger.Debug(string(c.EventBytes()))
-	res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
-		Name:        aws.String(name),
-		IfMatch:     aws.String(etag),
-		Stage:       Stage,
-		EventObject: c.EventBytes(),
+
+	// retry policy for returning 0 ComputeUtilization
+	policy := retry.Policy{
+		MinDelay: 100 * time.Millisecond,
+		MaxDelay: 1 * time.Second,
+		MaxCount: 5,
+	}
+	var testResult *types.TestResult
+	err := policy.Do(ctx, func() error {
+		res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
+			Name:        aws.String(name),
+			IfMatch:     aws.String(etag),
+			Stage:       Stage,
+			EventObject: c.EventBytes(),
+		})
+		if err != nil {
+			return retry.MarkPermanent(err)
+		}
+		testResult = res.TestResult
+
+		if errMsg := aws.ToString(testResult.FunctionErrorMessage); errMsg != "" {
+			return retry.MarkPermanent(errors.New(errMsg))
+		}
+		if testResult.ComputeUtilization == nil || *testResult.ComputeUtilization == "" || *testResult.ComputeUtilization == "0" {
+			logger.Debug("ComputeUtilization: 0, retring...")
+			return fmt.Errorf("ComputeUtilization: 0")
+		}
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("failed to test function, %w", err)
 	}
-	var failed bool
-	if errMsg := aws.ToString(res.TestResult.FunctionErrorMessage); errMsg != "" {
-		logger.Error(errMsg, "from", name)
-		failed = true
-	}
-	logger.Debug(f("result: %v", res.TestResult))
-	cu, err := strconv.Atoi(aws.ToString(res.TestResult.ComputeUtilization))
+
+	cu, err := strconv.Atoi(aws.ToString(testResult.ComputeUtilization))
 	if err != nil {
 		return fmt.Errorf("failed to parse compute utilization, %w", err)
 	}
@@ -327,25 +345,21 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	default:
 		logger.Info(f("ComputeUtilization: %d optimal", cu))
 	}
-	for _, l := range res.TestResult.FunctionExecutionLogs {
+
+	for _, l := range testResult.FunctionExecutionLogs {
 		logger.Info(l, "from", name)
 	}
-	out := *res.TestResult.FunctionOutput
-	if failed {
-		logger.Info(f("TestFunction API failed. function output: %s", out))
-		return errors.New("test failed")
-	} else {
-		logger.Info("TestFunction API succeeded")
-		logger.Debug(f("function output: %s", out))
-	}
+	out := *testResult.FunctionOutput
+	logger.Info("TestFunction API succeeded")
+	logger.Debug(f("function output: %s", out))
 	if c.expect == nil {
 		logger.Info("no expected value. skipping checking function output")
 		return nil
 	}
-	logger.Info("checking function output with expected value")
 
+	logger.Info("checking function output with expected value")
 	result := &CFFExpect{}
-	if err := json.Unmarshal([]byte(*res.TestResult.FunctionOutput), result); err != nil {
+	if err := json.Unmarshal([]byte(*testResult.FunctionOutput), result); err != nil {
 		return fmt.Errorf("failed to parse function output, %w", err)
 	}
 	var options []jsondiff.Option
