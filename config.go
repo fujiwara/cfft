@@ -2,53 +2,15 @@ package cfft
 
 import (
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-jsonnet"
 	goconfig "github.com/kayac/go-config"
 )
-
-const ChainTemplate = `
-const %s = async function (event) {
-    %s
-    return handler(event);
-}
-`
-
-const MainTemplateRequest = `
-%s
-
-async function handler(event) {
-	const fns = [%s];
-	for (let i = 0; i < fns.length; i++) {
-		const res = await fns[i](event);
-		if (res && res.statusCode) {
-			// when viewer-request returns response object, return it immediately
-			return res;
-		}
-		event.request = res;
-	}
-	return event.request;
-}
-`
-
-const MainTemplateResponse = `
-%s
-
-async function handler(event) {
-	const fns = [%s];
-	for (let i = 0; i < fns.length; i++) {
-		event.response = await fns[i](event);
-	}
-	return event.response;
-}
-`
 
 type Config struct {
 	Name      string                `json:"name" yaml:"name"`
@@ -63,11 +25,6 @@ type Config struct {
 	dir          string
 	path         string
 	loader       *goconfig.Loader
-}
-
-type ConfigChain struct {
-	EventType string   `json:"event_type" yaml:"event_type"`
-	Functions []string `json:"functions" yaml:"functions"`
 }
 
 // ReadFile supports jsonnet and yaml files. If the file is jsonnet or yaml, it will be evaluated and converted to json.
@@ -112,34 +69,14 @@ func (c *Config) FunctionCode() ([]byte, error) {
 		c.functionCode = b
 		return b, nil
 	} else if c.Chain != nil {
-		// chain
-		funcNames := make([]string, 0, len(c.Chain.Functions))
-		codes := make([]string, 0, len(c.Chain.Functions))
-		var imports []string
-		for _, cf := range c.Chain.Functions {
-			b, err := c.ReadFile(cf)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read chain function file %s, %w", cf, err)
-			}
-			name := fmt.Sprintf("__chain_%x", md5.Sum(b))
-			imp, code := grepImports(string(b))
-			codes = append(codes, fmt.Sprintf(ChainTemplate, name, code))
-			imports = append(imports, imp)
-			funcNames = append(funcNames, name)
+		code, err := c.Chain.FunctionCode(c.ReadFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate chain function code, %w", err)
 		}
-		var main string
-		switch c.Chain.EventType {
-		case "viewer-request":
-			main = fmt.Sprintf(MainTemplateRequest, strings.Join(imports, "\n"), strings.Join(funcNames, ", "))
-		case "viewer-response":
-			main = fmt.Sprintf(MainTemplateResponse, strings.Join(imports, "\n"), strings.Join(funcNames, ", "))
-		default:
-			return nil, fmt.Errorf("invalid chain event_type %s", c.Chain.EventType)
-		}
-		c.functionCode = []byte(strings.Join(codes, "\n") + main)
+		c.functionCode = code
 		return c.functionCode, nil
 	} else {
-		return nil, fmt.Errorf("function or chain_functions is required")
+		return nil, fmt.Errorf("function or chain is required")
 	}
 }
 
@@ -192,18 +129,4 @@ func LoadConfig(ctx context.Context, path string) (*Config, error) {
 
 type KeyValueStoreConfig struct {
 	Name string `json:"name" yaml:"name"`
-}
-
-func grepImports(s string) (string, string) {
-	var imports []string
-	var code []string
-	for _, line := range strings.Split(s, "\n") {
-		l := strings.TrimSpace(line)
-		if strings.HasPrefix(l, "import ") {
-			imports = append(imports, line)
-		} else {
-			code = append(code, line)
-		}
-	}
-	return strings.Join(imports, "\n"), strings.Join(code, "\n")
 }
