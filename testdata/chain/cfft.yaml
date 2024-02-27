@@ -1,0 +1,14 @@
+name: chain
+function:
+  event_type: viewer-request
+  functions:
+    - req1.js
+    - req2.js
+  filter_command: "npx esbuild --minify"
+runtime: cloudfront-js-2.0
+testCases:
+  - name: default
+    event: event.json
+    expect: expect.json
+    ignore: ""
+    env: {}
