@@ -53,7 +53,7 @@ func DefaultEvent(t string) []byte {
 
 type InitCmd struct {
 	Name      string `help:"function name" required:"true"`
-	Format    string `help:"output event file format (json,jsonnet,yaml)" default:"json" enum:"jsonnet,json,yaml,yml"`
+	Format    string `help:"output config and event file format (json,jsonnet,yaml)" default:"" enum:"jsonnet,json,yaml,yml,"`
 	EventType string `help:"event type (viewer-request,viewer-response)" default:"viewer-request" enum:"viewer-request,viewer-response"`
 }
 
@@ -121,32 +121,64 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		return fmt.Errorf("failed to write file, %w", err)
 	}
 
+	configFormat := opt.Format
+	if configFormat == "" {
+		configFormat = "yaml"
+	}
+	eventFormat := opt.Format
+	if eventFormat == "" {
+		eventFormat = "json"
+	}
+
 	// create config file
 	config := &Config{
 		Name:     name,
 		Comment:  comment,
 		Runtime:  runtime,
-		Function: "function.js",
+		Function: json.RawMessage(`"function.js"`),
 		KVS:      kvsConfig,
 		TestCases: []*TestCase{
 			{
 				Name:  "default",
-				Event: "event." + opt.Format,
+				Event: "event." + eventFormat,
 			},
 		},
 	}
-	if b, err := yaml.Marshal(config); err != nil {
-		return fmt.Errorf("failed to marshal yaml, %w", err)
-	} else {
-		slog.Info("creating config file: cfft.yaml")
-		if err := WriteFile("cfft.yaml", b, 0644); err != nil {
+	configBytes, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal json, %w", err)
+	}
+	switch configFormat {
+	case "jsonnet":
+		slog.Info("creating config file: cfft.jsonnet")
+		out, err := formatter.Format("cfft.jsonnet", string(configBytes), formatter.DefaultOptions())
+		if err != nil {
+			return fmt.Errorf("failed to format jsonnet, %w", err)
+		}
+		if err := WriteFile("cfft.jsonnet", []byte(out), 0644); err != nil {
 			return fmt.Errorf("failed to write file, %w", err)
 		}
+	case "json":
+		slog.Info("creating config file: cfft.json")
+		if err := WriteFile("cfft.json", configBytes, 0644); err != nil {
+			return fmt.Errorf("failed to write file, %w", err)
+		}
+	case "yaml", "yml":
+		slog.Info("creating config file: cfft.yaml")
+		yb, err := yaml.JSONToYAML(configBytes)
+		if err != nil {
+			return fmt.Errorf("failed to convert json to yaml, %w", err)
+		}
+		if err := WriteFile("cfft.yaml", yb, 0644); err != nil {
+			return fmt.Errorf("failed to write file, %w", err)
+		}
+	default:
+		return fmt.Errorf("invalid format %s", opt.Format)
 	}
 
 	// create event file
 	slog.Info(f("creating event file event.%s", opt.Format))
-	switch opt.Format {
+	switch eventFormat {
 	case "jsonnet":
 		out, err := formatter.Format("event.jsonnet", string(DefaultEvent(opt.EventType)), formatter.DefaultOptions())
 		if err != nil {

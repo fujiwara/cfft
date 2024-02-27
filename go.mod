@@ -16,6 +16,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/itchyny/gojq v0.12.14
 	github.com/kayac/go-config v0.7.0
+	github.com/mattn/go-shellwords v1.0.12
 	github.com/samber/lo v1.39.0
 	github.com/shogo82148/go-retry v1.2.0
 )
@@ -33,6 +34,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.6 // indirect
 	github.com/aws/smithy-go v1.19.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

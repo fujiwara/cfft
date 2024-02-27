@@ -1,0 +1,16 @@
+{
+    "request": {
+        "method": "GET",
+        "uri": "/index.html",
+        "headers": {
+            "x-req1": {
+                "value": "foo"
+            },
+            "x-req2": {
+                "value": "bar"
+            }
+        },
+        "cookies": {},
+        "querystring": {}
+    }
+}

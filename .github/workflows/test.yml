@@ -16,11 +16,19 @@ jobs:
           go-version: ${{ matrix.go }}
         id: go
 
+      - name: Set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install esbuild
+        run: npm -g install esbuild
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
 
       - name: Build & Test
         run: |
-          go test -race ./...
+          make test
         env:
           GO111MODULE: on
