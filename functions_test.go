@@ -1,6 +1,7 @@
 package cfft_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -19,14 +20,15 @@ const runHandler = `
 `
 
 type localRunner struct {
-	code string
+	code []byte
 }
 
 func (r *localRunner) Run(ctx context.Context, name, _ string, event []byte, logger *slog.Logger) ([]byte, error) {
 	logger.Info(fmt.Sprintf("running function %s at local", name))
-	chaindCode := r.code + "\n" + fmt.Sprintf(runHandler, string(event))
-	logger.Info(chaindCode)
-	cmd := exec.CommandContext(ctx, "node", "-e", chaindCode)
+	code := r.code
+	code = append(code, []byte(fmt.Sprintf(runHandler, string(event)))...)
+	cmd := exec.CommandContext(ctx, "node")
+	cmd.Stdin = bytes.NewReader(code)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Error(string(out))
@@ -49,7 +51,7 @@ func TestChainFunction(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	app.SetRunner(&localRunner{code: string(code)})
+	app.SetRunner(&localRunner{code: code})
 	for _, cs := range app.Config().TestCases {
 		if err := app.RunTestCase(ctx, "chain", "", cs); err != nil {
 			t.Errorf("failed to test: %v", err)
