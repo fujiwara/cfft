@@ -40,13 +40,17 @@ func (h *logHandler) FprintfFunc(level slog.Level) func(io.Writer, string, ...in
 	if h.opts.Color {
 		switch level {
 		case slog.LevelWarn:
-			return color.New(color.FgYellow).FprintfFunc()
+			return warnColoredFprintfFunc
 		case slog.LevelError:
-			return color.New(color.FgRed).FprintfFunc()
+			return errorColoredFprintfFunc
 		}
 	}
 	return defaultFprintfFunc
 }
+
+var warnColoredFprintfFunc = color.New(color.FgYellow).FprintfFunc()
+
+var errorColoredFprintfFunc = color.New(color.FgRed).FprintfFunc()
 
 var defaultFprintfFunc = func(w io.Writer, format string, args ...interface{}) {
 	fmt.Fprintf(w, format, args...)
