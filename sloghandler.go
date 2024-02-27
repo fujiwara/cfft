@@ -9,16 +9,22 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
+type HandlerOptions struct {
+	slog.HandlerOptions
+	Color bool
+}
 type logHandler struct {
-	opts         *slog.HandlerOptions
+	opts         *HandlerOptions
 	preformatted []byte
 	mu           *sync.Mutex
 	w            io.Writer
 }
 
-func NewLogHandler(w io.Writer, opts *slog.HandlerOptions) slog.Handler {
+func NewLogHandler(w io.Writer, opts *HandlerOptions) slog.Handler {
 	return &logHandler{
 		opts: opts,
 		mu:   new(sync.Mutex),
@@ -30,18 +36,35 @@ func (h *logHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return level >= h.opts.Level.Level()
 }
 
+func (h *logHandler) FprintfFunc(level slog.Level) func(io.Writer, string, ...interface{}) {
+	if h.opts.Color {
+		switch level {
+		case slog.LevelWarn:
+			return color.New(color.FgYellow).FprintfFunc()
+		case slog.LevelError:
+			return color.New(color.FgRed).FprintfFunc()
+		}
+	}
+	return defaultFprintfFunc
+}
+
+var defaultFprintfFunc = func(w io.Writer, format string, args ...interface{}) {
+	fmt.Fprintf(w, format, args...)
+}
+
 func (h *logHandler) Handle(ctx context.Context, record slog.Record) error {
-	buf := bytes.NewBuffer(nil)
-	fmt.Fprint(buf, record.Time.Format(time.RFC3339))
-	fmt.Fprintf(buf, " [%s]", strings.ToLower(record.Level.String()))
+	buf := new(bytes.Buffer)
+	fprintf := h.FprintfFunc(record.Level)
+	fprintf(buf, "%s", record.Time.Format(time.RFC3339))
+	fprintf(buf, " [%s]", strings.ToLower(record.Level.String()))
 	if len(h.preformatted) > 0 {
 		buf.Write(h.preformatted)
 	}
 	record.Attrs(func(a slog.Attr) bool {
-		fmt.Fprintf(buf, " [%s:%v]", a.Key, a.Value)
+		fprintf(buf, " [%s:%v]", a.Key, a.Value)
 		return true
 	})
-	fmt.Fprintf(buf, " %s\n", record.Message)
+	fprintf(buf, " %s\n", record.Message)
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	_, err := h.w.Write(buf.Bytes())

@@ -11,6 +11,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/fatih/color"
+	"github.com/mattn/go-isatty"
 )
 
 type CLI struct {
@@ -74,14 +75,16 @@ func RunCLI(ctx context.Context, args []string) error {
 		fmt.Println("cfft version", Version)
 		return nil
 	}
-	opt := &slog.HandlerOptions{
-		Level: logLevel,
+	opt := &HandlerOptions{}
+	opt.Level = logLevel
+	if isatty.IsTerminal(os.Stderr.Fd()) {
+		opt.Color = true
 	}
 	switch cli.LogFormat {
 	case "text":
 		slog.SetDefault(slog.New(NewLogHandler(os.Stderr, opt)))
 	case "json":
-		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, opt)))
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &opt.HandlerOptions)))
 	default:
 		return fmt.Errorf("invalid log format %s", cli.LogFormat)
 	}
