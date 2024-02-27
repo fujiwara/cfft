@@ -1,17 +1,14 @@
 package cfft_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
+	"log/slog"
 	"os/exec"
 	"path"
 	"testing"
 
 	"github.com/fujiwara/cfft"
-	"github.com/google/go-cmp/cmp"
 )
 
 const runHandler = `
@@ -21,6 +18,23 @@ const runHandler = `
 })()
 `
 
+type localRunner struct {
+	code string
+}
+
+func (r *localRunner) Run(ctx context.Context, name, _ string, event []byte, logger *slog.Logger) ([]byte, error) {
+	logger.Info(fmt.Sprintf("running function %s at local", name))
+	chaindCode := r.code + "\n" + fmt.Sprintf(runHandler, string(event))
+	logger.Info(chaindCode)
+	cmd := exec.CommandContext(ctx, "node", "-e", chaindCode)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Error(string(out))
+		return nil, err
+	}
+	return out, nil
+}
+
 func TestChainFunction(t *testing.T) {
 	ctx := context.Background()
 	conf, err := cfft.LoadConfig(ctx, path.Join("testdata/chain/cfft.yaml"))
@@ -29,38 +43,16 @@ func TestChainFunction(t *testing.T) {
 	}
 	app, err := cfft.New(ctx, conf)
 	if err != nil {
-		t.Errorf("failed to create app: %v", err)
+		t.Error(err)
 	}
-	b := &bytes.Buffer{}
-	app.SetStdout(b)
-	if err := app.Render(ctx, &cfft.RenderCmd{}); err != nil {
-		t.Errorf("failed to render: %v", err)
-	}
-	event, err := os.ReadFile("testdata/chain/event.json")
+	code, err := app.Config().FunctionCode(ctx)
 	if err != nil {
-		t.Errorf("failed to read event.json: %v", err)
+		t.Error(err)
 	}
-	chaindCode := b.String() + "\n" + fmt.Sprintf(runHandler, string(event))
-	cmd := exec.CommandContext(ctx, "node", "-e", chaindCode)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Errorf("failed to run chaind code: %v", err)
-	}
-	t.Log(string(out))
-	var result cfft.CFFExpect
-	if err := json.Unmarshal(out, &result); err != nil {
-		t.Errorf("failed to parse output: %v", err)
-	}
-	var expect cfft.CFFExpect
-	if b, err := os.ReadFile("testdata/chain/expect.json"); err != nil {
-		t.Errorf("failed to read expect.json: %v", err)
-	} else {
-		t.Log(string(b))
-		if err := json.Unmarshal(b, &expect); err != nil {
-			t.Errorf("failed to parse expect.json: %v", err)
+	app.SetRunner(&localRunner{code: string(code)})
+	for _, cs := range app.Config().TestCases {
+		if err := app.RunTestCase(ctx, "chain", "", cs); err != nil {
+			t.Errorf("failed to test: %v", err)
 		}
-	}
-	if diff := cmp.Diff(expect, result); diff != "" {
-		t.Errorf("unexpected output: %v", diff)
 	}
 }

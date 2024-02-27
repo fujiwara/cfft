@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/aereal/jsondiff"
 	"github.com/itchyny/gojq"
 )
 
@@ -97,6 +98,39 @@ func (c *TestCase) Setup(ctx context.Context, readFile func(string) ([]byte, err
 			return fmt.Errorf("failed to parse ignore query, %w", err)
 		}
 		c.ignore = q
+	}
+	return nil
+}
+
+func (c *TestCase) Run(ctx context.Context, output []byte, logger *slog.Logger) error {
+	logger.Debug(f("function output: %s", string(output)))
+	if c.expect == nil {
+		logger.Info("no expected value. skipping checking function output")
+		return nil
+	}
+
+	logger.Info("checking function output with expected value")
+	result := &CFFExpect{}
+	if err := json.Unmarshal(output, result); err != nil {
+		return fmt.Errorf("failed to parse function output, %w", err)
+	}
+	var options []jsondiff.Option
+	if c.ignore != nil {
+		options = append(options, jsondiff.Ignore(c.ignore))
+	}
+	diff, err := jsondiff.Diff(
+		&jsondiff.Input{Name: "expect", X: c.expect.ToMap()},
+		&jsondiff.Input{Name: "actual", X: result.ToMap()},
+		options...,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to diff, %w", err)
+	}
+	if diff != "" {
+		fmt.Print(coloredDiff(diff))
+		return fmt.Errorf("expect and actual are not equal")
+	} else {
+		logger.Info("expect and actual are equal")
 	}
 	return nil
 }

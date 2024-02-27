@@ -3,7 +3,6 @@ package cfft
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,7 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aereal/jsondiff"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -36,6 +34,7 @@ type CFFT struct {
 	cfkvsArn   string
 	envs       map[string]string
 	stdout     io.Writer
+	runner     FunctionRunner
 }
 
 func (app *CFFT) SetStdout(w io.Writer) {
@@ -56,6 +55,7 @@ func New(ctx context.Context, config *Config) (*CFFT, error) {
 	}
 	app.cloudfront = cloudfront.NewFromConfig(awscfg)
 	app.cfkvs = cloudfrontkeyvaluestore.NewFromConfig(awscfg)
+	app.runner = &CFFRunner{cloudfront: app.cloudfront}
 
 	return app, nil
 }
@@ -147,7 +147,7 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 			slog.Debug(f("skipping test case %s", testCase.Identifier()))
 			continue
 		}
-		if err := app.runTestCase(ctx, app.config.Name, etag, testCase); err != nil {
+		if err := app.RunTestCase(ctx, app.config.Name, etag, testCase); err != nil {
 			fail++
 			e := fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
 			slog.Error(e.Error())
@@ -296,10 +296,23 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 	return associated, nil
 }
 
-func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase) error {
-	logger := slog.With("testcase", c.Identifier())
+func (app *CFFT) RunTestCase(ctx context.Context, name, etag string, cs *TestCase) error {
+	logger := slog.With("testcase", cs.Identifier())
+
+	output, err := app.runner.Run(ctx, name, etag, cs.EventBytes(), logger)
+	if err != nil {
+		return fmt.Errorf("failed to run test function, %w", err)
+	}
+
+	return cs.Run(ctx, output, logger)
+}
+
+type CFFRunner struct {
+	cloudfront *cloudfront.Client
+}
+
+func (r *CFFRunner) Run(ctx context.Context, name, etag string, event []byte, logger *slog.Logger) ([]byte, error) {
 	logger.Info("testing function", "etag", etag)
-	logger.Debug(string(c.EventBytes()))
 
 	// retry policy for returning 0 ComputeUtilization
 	policy := retry.Policy{
@@ -309,11 +322,11 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	}
 	var testResult *types.TestResult
 	err := policy.Do(ctx, func() error {
-		res, err := app.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
+		res, err := r.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 			Name:        aws.String(name),
 			IfMatch:     aws.String(etag),
 			Stage:       Stage,
-			EventObject: c.EventBytes(),
+			EventObject: event,
 		})
 		if err != nil {
 			return retry.MarkPermanent(err)
@@ -330,12 +343,12 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to test function, %w", err)
+		return nil, fmt.Errorf("failed to test function, %w", err)
 	}
 
 	cu, err := strconv.Atoi(aws.ToString(testResult.ComputeUtilization))
 	if err != nil {
-		return fmt.Errorf("failed to parse compute utilization, %w", err)
+		return nil, fmt.Errorf("failed to parse compute utilization, %w", err)
 	}
 	switch {
 	case 71 <= cu:
@@ -349,36 +362,11 @@ func (app *CFFT) runTestCase(ctx context.Context, name, etag string, c *TestCase
 	for _, l := range testResult.FunctionExecutionLogs {
 		logger.Info(l, "from", name)
 	}
-	out := *testResult.FunctionOutput
 	logger.Info("TestFunction API succeeded")
-	logger.Debug(f("function output: %s", out))
-	if c.expect == nil {
-		logger.Info("no expected value. skipping checking function output")
-		return nil
-	}
 
-	logger.Info("checking function output with expected value")
-	result := &CFFExpect{}
-	if err := json.Unmarshal([]byte(*testResult.FunctionOutput), result); err != nil {
-		return fmt.Errorf("failed to parse function output, %w", err)
-	}
-	var options []jsondiff.Option
-	if c.ignore != nil {
-		options = append(options, jsondiff.Ignore(c.ignore))
-	}
-	diff, err := jsondiff.Diff(
-		&jsondiff.Input{Name: "expect", X: c.expect.ToMap()},
-		&jsondiff.Input{Name: "actual", X: result.ToMap()},
-		options...,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to diff, %w", err)
-	}
-	if diff != "" {
-		fmt.Print(coloredDiff(diff))
-		return fmt.Errorf("expect and actual are not equal")
-	} else {
-		logger.Info("expect and actual are equal")
-	}
-	return nil
+	return []byte(*testResult.FunctionOutput), nil
+}
+
+type FunctionRunner interface {
+	Run(ctx context.Context, name, etag string, event []byte, logger *slog.Logger) ([]byte, error)
 }

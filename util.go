@@ -183,9 +183,9 @@ type cffrequest CFFRequest
 type CFFRequest struct {
 	Method      string                    `json:"method"`
 	URI         string                    `json:"uri"`
-	QueryString map[string]CFFValue       `json:"querystring,omitempty"`
-	Headers     map[string]CFFValue       `json:"headers,omitempty"`
-	Cookies     map[string]CFFCookieValue `json:"cookies,omitempty"`
+	QueryString map[string]CFFValue       `json:"querystring"`
+	Headers     map[string]CFFValue       `json:"headers"`
+	Cookies     map[string]CFFCookieValue `json:"cookies"`
 }
 
 /*
@@ -224,8 +224,8 @@ type cffresponse CFFResponse
 type CFFResponse struct {
 	StatusCode        int                       `json:"statusCode,omitempty"`
 	StatusDescription string                    `json:"statusDescription,omitempty"`
-	Headers           map[string]CFFValue       `json:"headers,omitempty"`
-	Cookies           map[string]CFFCookieValue `json:"cookies,omitempty"`
+	Headers           map[string]CFFValue       `json:"headers"`
+	Cookies           map[string]CFFCookieValue `json:"cookies"`
 	Body              *CFFBody                  `json:"body,omitempty"`
 }
 
