@@ -41,7 +41,7 @@ type TFOutout struct {
 }
 
 func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
-	code, err := app.config.FunctionCode()
+	code, err := app.config.FunctionCode(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}

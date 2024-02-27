@@ -1,6 +1,7 @@
 package cfft
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,12 +17,12 @@ import (
 type Config struct {
 	Name      string                `json:"name" yaml:"name"`
 	Comment   string                `json:"comment" yaml:"comment"`
-	Function  string                `json:"function" yaml:"function,omitempty"`
-	Chain     *ConfigChain          `json:"chain,omitempty" yaml:"chain,omitempty"`
+	Function  json.RawMessage       `json:"function" yaml:"function,omitempty"`
 	Runtime   types.FunctionRuntime `json:"runtime" yaml:"runtime"`
 	KVS       *KeyValueStoreConfig  `json:"kvs,omitempty" yaml:"kvs,omitempty"`
 	TestCases []*TestCase           `json:"testCases" yaml:"testCases"`
 
+	function     ConfigFunction
 	functionCode []byte
 	dir          string
 	path         string
@@ -58,25 +59,15 @@ func (c *Config) ReadFile(p string) ([]byte, error) {
 	return ReadFile(filepath.Join(c.dir, p))
 }
 
-func (c *Config) FunctionCode() ([]byte, error) {
+func (c *Config) FunctionCode(ctx context.Context) ([]byte, error) {
 	if c.functionCode != nil {
 		return c.functionCode, nil
 	}
-	if c.Function != "" {
-		b, err := c.ReadFile(c.Function)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read function file %s, %w", c.Function, err)
-		}
-		c.functionCode = b
-	} else if c.Chain != nil {
-		code, err := c.Chain.FunctionCode(c.ReadFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate chain function code, %w", err)
-		}
-		c.functionCode = code
-	} else {
-		return nil, fmt.Errorf("function or chain is required")
+	code, err := c.function.FunctionCode(ctx, c.ReadFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read function code, %w", err)
 	}
+	c.functionCode = code
 	slog.Debug(f("function code size: %d", len(c.functionCode)))
 	if s := len(c.functionCode); s > MaxCodeSize {
 		return nil, fmt.Errorf("function code size %d exceeds %d bytes", s, MaxCodeSize)
@@ -101,11 +92,22 @@ func LoadConfig(ctx context.Context, path string) (*Config, error) {
 	if config.Name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
-	if config.Function == "" && config.Chain == nil {
-		return nil, fmt.Errorf("function or chain is required")
+
+	if bytes.HasPrefix(config.Function, []byte(`"`)) {
+		// maybe string
+		var s string
+		if err := json.Unmarshal(config.Function, &s); err == nil {
+			config.function.Functions = []string{s}
+		}
+	} else if err := json.Unmarshal(config.Function, &config.function); err != nil {
+		return nil, fmt.Errorf("failed to parse function, %w", err)
 	}
-	if config.Chain != nil && config.Runtime != types.FunctionRuntimeCloudfrontJs20 {
-		return nil, fmt.Errorf("chain is only supported for runtime %s", types.FunctionRuntimeCloudfrontJs20)
+
+	if len(config.function.Functions) == 0 {
+		return nil, fmt.Errorf("function is required")
+	}
+	if len(config.function.Functions) > 1 && config.Runtime != types.FunctionRuntimeCloudfrontJs20 {
+		return nil, fmt.Errorf("chain functions feature is only supported for runtime %s", types.FunctionRuntimeCloudfrontJs20)
 	}
 
 	// validate runtime

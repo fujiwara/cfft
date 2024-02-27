@@ -87,14 +87,13 @@ func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 	if res != nil {
 		remote = aws.ToString(res.ETag)
 	}
-	local := app.config.Function
-	localCode, err := app.config.FunctionCode()
+	localCode, err := app.config.FunctionCode(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
 
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
-	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))
+	out := fmt.Sprint(gotextdiff.ToUnified(remote, "local", string(remoteCode), edits))
 	fmt.Print(coloredDiff(out))
 	return nil
 }

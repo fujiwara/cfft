@@ -131,7 +131,7 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 	if err := opt.Setup(); err != nil {
 		return err
 	}
-	code, err := app.config.FunctionCode()
+	code, err := app.config.FunctionCode(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load function code, %w", err)
 	}

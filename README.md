@@ -393,33 +393,39 @@ response: |
 
 ### Chain multiple functions
 
-cfft supports chaining multiple functions.
+cfft supports chaining multiple functions. The feature is useful to test the combined function.
 
 ```yaml
 # cfft.yaml
 name: my-function
-runtime: cloudfront-js-2.0
-chain:
+runtime: cloudfront-js-2.0 # required
+function:
   event-type: viewer-request
   functions:
     - function1.js
     - function2.js
+  filter_command: "npx esbuild --minify"
 testCases:
 ## ...
 ```
 
-- `chain` element specifies the chain of functions.
+The `runtime` must be `cloudfront-js-2.0`.
+
+- `function` element allows you to specify multiple function files.
   - `event-type` must be `viewer-request` or `viewer-response`. required.
   - `functions` element is an array of function files.
+  - `filter_command` is a command to filter the chained function code. optional.
 
-When you specify the `chain` element instead of `function`, cfft creates a combined function with the `chain.functions` automatically.
+When you specify the multiple `functions` in `function`, cfft automatically creates a combined function chained with all functions.
 
 The combined function works as the following steps.
 1. The first function in the `functions` array is evaluated.
 2. The result of the first function is passed to the second function.
 3. ...(repeat)
 
-When the event-type is `viewer-response` and any step returns a response object(includes `statusCode`), the response object is returned to the viewer immidiately.
+When the event-type is `viewer-response` and any step returns a response object(includes `statusCode`), the response object is returned to the viewer immidiately. The following functions are not evaluated.
+
+The `filter_command` is a command to filter the chained function code. The command must accepts the function code from stdin and outputs the filtered function code to stdout. For example, use `npx esbuild --minify` to minify the function code.
 
 You can review the generated combined function code with `cfft render` command.
 

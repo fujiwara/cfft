@@ -34,7 +34,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	}
 	slog.Info(f("function %s found", name))
 
-	localCode, err := app.config.FunctionCode()
+	localCode, err := app.config.FunctionCode(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
