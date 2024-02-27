@@ -1,6 +1,7 @@
 package cfft
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -58,6 +59,11 @@ func (app *CFFT) diffFunctionConfig(ctx context.Context) error {
 	remoteCode, _ := yaml.Marshal(remoteConfig)
 	localCode, _ := yaml.Marshal(localConfig)
 
+	if bytes.Equal(remoteCode, localCode) {
+		slog.Info("function config is up-to-date")
+		return nil
+	}
+
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
 	out := fmt.Sprint(gotextdiff.ToUnified(remote, local, string(remoteCode), edits))
 	fmt.Print(coloredDiff(out))
@@ -90,6 +96,11 @@ func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 	localCode, err := app.config.FunctionCode(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
+	}
+
+	if bytes.Equal(localCode, remoteCode) {
+		slog.Info("function code is up-to-date")
+		return nil
 	}
 
 	edits := myers.ComputeEdits(span.URIFromPath(remote), string(remoteCode), string(localCode))
