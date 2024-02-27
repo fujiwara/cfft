@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
@@ -67,17 +68,20 @@ func (c *Config) FunctionCode() ([]byte, error) {
 			return nil, fmt.Errorf("failed to read function file %s, %w", c.Function, err)
 		}
 		c.functionCode = b
-		return b, nil
 	} else if c.Chain != nil {
 		code, err := c.Chain.FunctionCode(c.ReadFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate chain function code, %w", err)
 		}
 		c.functionCode = code
-		return c.functionCode, nil
 	} else {
 		return nil, fmt.Errorf("function or chain is required")
 	}
+	slog.Debug(f("function code size: %d", len(c.functionCode)))
+	if s := len(c.functionCode); s > MaxCodeSize {
+		return nil, fmt.Errorf("function code size %d exceeds %d bytes", s, MaxCodeSize)
+	}
+	return c.functionCode, nil
 }
 
 func LoadConfig(ctx context.Context, path string) (*Config, error) {

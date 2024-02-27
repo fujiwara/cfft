@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"text/template"
 )
+
+const MaxCodeSize = 10 * 1024
 
 var FuncMap = template.FuncMap{
 	"join": strings.Join,
@@ -19,7 +22,7 @@ type FuncTemplateArgs struct {
 }
 
 var FuncTemplate = template.Must(template.New("func").Parse(`
-const {{.Name}} = async (event) => {
+const {{.Name}} = async function(event) {
   {{.Code}}
   return handler(event);
 }
@@ -39,7 +42,7 @@ var MainTemplateRequest = template.Must(template.New("main").Funcs(FuncMap).Pars
 {{.}}
 {{- end -}}
 
-const handler = async (event) => {
+async function handler(event) {
   const funcs = [{{ join .FuncNames ","}}];
   for (let i = 0; i < funcs.length; i++) {
     const res = await funcs[i](event);
@@ -62,7 +65,7 @@ var MainTemplateResponse = template.Must(template.New("main").Funcs(FuncMap).Par
 {{.}}
 {{- end -}}
 
-const handler = async (event) => {
+async function handler(event) {
   const funcs = [{{ join .FuncNames "," }}];
   for (let i = 0; i < funcs.length; i++) {
     event.response = await funcs[i](event);
@@ -77,10 +80,12 @@ type ConfigChain struct {
 }
 
 func (c *ConfigChain) FunctionCode(readFile func(string) ([]byte, error)) ([]byte, error) {
+	slog.Debug("generating chain function code")
 	funcNames := make([]string, 0, len(c.Functions))
 	funcCodes := make([]string, 0, len(c.Functions))
 	imports := make([]string, 0)
 	for _, cf := range c.Functions {
+		slog.Debug(f("reading chain function file %s", cf))
 		b, err := readFile(cf)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read chain function file %s, %w", cf, err)
