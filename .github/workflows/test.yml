@@ -29,6 +29,6 @@ jobs:
 
       - name: Build & Test
         run: |
-          go test -race ./...
+          make test
         env:
           GO111MODULE: on
