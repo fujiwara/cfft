@@ -1,5 +1,5 @@
-{
-  version: '1.0',
+local event = import 'libs/event.libsonnet';
+event {
   context: {
     eventType: 'viewer-response',
   },
