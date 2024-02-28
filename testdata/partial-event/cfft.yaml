@@ -5,6 +5,6 @@ runtime: cloudfront-js-2.0
 testCases:
   - name: default
     event: event.json
-    expect: ""
+    expect: expect.json
     ignore: ""
     env: {}

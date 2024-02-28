@@ -56,7 +56,7 @@ func TestLocalRunner(t *testing.T) {
 			}
 			app.SetRunner(&localRunner{code: code})
 			for _, cs := range app.Config().TestCases {
-				if err := app.RunTestCase(ctx, conf.Name, "", cs); err != nil {
+				if err := app.RunTestCase(ctx, "test-etag", cs); err != nil {
 					t.Errorf("failed to test: %v", err)
 				}
 			}

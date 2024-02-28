@@ -1,0 +1,15 @@
+{
+    "request": {
+        "method": "GET",
+        "uri": "/index.html",
+        "headers": {
+            "cache-control": { "value": "private; no-cache" }
+        },
+        "cookies": {
+            "cookie-name": { "value": "cookie-value" }
+        },
+        "querystring": {
+            "n": { "value": "10" }
+        }
+    }
+}
