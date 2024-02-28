@@ -102,6 +102,17 @@ func (r *CFFRequest) UnmarshalJSON(b []byte) error {
 	default:
 		return fmt.Errorf("invalid request object: %s", string(b))
 	}
+
+	// init by empty map if nil
+	if r.Headers == nil {
+		r.Headers = map[string]CFFValue{}
+	}
+	if r.QueryString == nil {
+		r.QueryString = map[string]CFFValue{}
+	}
+	if r.Cookies == nil {
+		r.Cookies = map[string]CFFCookieValue{}
+	}
 	return nil
 }
 

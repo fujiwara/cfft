@@ -37,24 +37,29 @@ func (r *localRunner) Run(ctx context.Context, name, _ string, event []byte, log
 	return out, nil
 }
 
-func TestChainFunction(t *testing.T) {
+func TestLocalRunner(t *testing.T) {
+	dirs := []string{"funcv1", "funcv2", "chain", "partial-event"}
 	ctx := context.Background()
-	conf, err := cfft.LoadConfig(ctx, path.Join("testdata/chain/cfft.yaml"))
-	if err != nil {
-		t.Errorf("failed to load config: %v", err)
-	}
-	app, err := cfft.New(ctx, conf)
-	if err != nil {
-		t.Error(err)
-	}
-	code, err := app.Config().FunctionCode(ctx)
-	if err != nil {
-		t.Error(err)
-	}
-	app.SetRunner(&localRunner{code: code})
-	for _, cs := range app.Config().TestCases {
-		if err := app.RunTestCase(ctx, "chain", "", cs); err != nil {
-			t.Errorf("failed to test: %v", err)
-		}
+	for _, dir := range dirs {
+		t.Run(dir, func(t *testing.T) {
+			conf, err := cfft.LoadConfig(ctx, path.Join("testdata", dir, "cfft.yaml"))
+			if err != nil {
+				t.Errorf("failed to load config: %v", err)
+			}
+			app, err := cfft.New(ctx, conf)
+			if err != nil {
+				t.Error(err)
+			}
+			code, err := app.Config().FunctionCode(ctx)
+			if err != nil {
+				t.Error(err)
+			}
+			app.SetRunner(&localRunner{code: code})
+			for _, cs := range app.Config().TestCases {
+				if err := app.RunTestCase(ctx, conf.Name, "", cs); err != nil {
+					t.Errorf("failed to test: %v", err)
+				}
+			}
+		})
 	}
 }
