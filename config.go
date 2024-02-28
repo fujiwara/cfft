@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
@@ -38,11 +39,19 @@ func ReadFile(p string) ([]byte, error) {
 	switch filepath.Ext(p) {
 	case ".json", ".jsonnet":
 		vm := jsonnet.MakeVM()
-		s, err := vm.EvaluateAnonymousSnippet(p, string(b))
-		if err != nil {
-			return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", p, err)
-		}
-		return []byte(s), nil
+		return func() ([]byte, error) {
+			// change directory to the file's directory
+			// to resolve relative paths in jsonnet
+			cd, _ := os.Getwd()
+			defer os.Chdir(cd)
+			d, f := filepath.Dir(p), filepath.Base(p)
+			os.Chdir(d)
+			s, err := vm.EvaluateAnonymousSnippet(f, string(b))
+			if err != nil {
+				return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", p, err)
+			}
+			return []byte(s), nil
+		}()
 	case ".yaml", ".yml":
 		var v any
 		if err := yaml.Unmarshal(b, &v); err != nil {
