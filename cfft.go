@@ -147,7 +147,7 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 			slog.Debug(f("skipping test case %s", testCase.Identifier()))
 			continue
 		}
-		if err := app.RunTestCase(ctx, app.config.Name, etag, testCase); err != nil {
+		if err := app.RunTestCase(ctx, etag, testCase); err != nil {
 			fail++
 			e := fmt.Errorf("failed to run test case %s, %w", testCase.Identifier(), err)
 			slog.Error(e.Error())
@@ -296,10 +296,10 @@ func (app *CFFT) associateKVS(ctx context.Context, fc *types.FunctionConfig) (bo
 	return associated, nil
 }
 
-func (app *CFFT) RunTestCase(ctx context.Context, name, etag string, cs *TestCase) error {
+func (app *CFFT) RunTestCase(ctx context.Context, etag string, cs *TestCase) error {
 	logger := slog.With("testcase", cs.Identifier())
 
-	output, err := app.runner.Run(ctx, name, etag, cs.EventBytes(), logger)
+	output, err := app.runner.Run(ctx, app.config.Name, etag, cs.EventBytes(), logger)
 	if err != nil {
 		return fmt.Errorf("failed to run test function, %w", err)
 	}
@@ -313,6 +313,7 @@ type CFFRunner struct {
 
 func (r *CFFRunner) Run(ctx context.Context, name, etag string, event []byte, logger *slog.Logger) ([]byte, error) {
 	logger.Info("testing function", "etag", etag)
+	logger.Debug(f("event object: %s", string(event)))
 
 	// retry policy for returning 0 ComputeUtilization
 	policy := retry.Policy{

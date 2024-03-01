@@ -501,15 +501,31 @@ $ cfft publish
 
 Before publishing the function, you need to run `cfft diff` to check the difference and run `cfft test` to check the function behavior.
 
-### Render function code
+### Render function code, event and expect object
 
-`cfft render` renders the function code to stdout.
+`cfft render` renders the function code or event object or expect object to STDOUT.
+
+```
+Usage: cfft render [<target>]
+
+render function code
+
+Arguments:
+  [<target>]    render target (function,event,expect)
+
+Flags:
+       --test-case="" test case name (for target event or expect)
+```
 
 ```console
 $ cfft render
 ```
 
 You can use `cfft render` to check the function code after rendering the template syntax.
+
+`cfft render event --test-case=foo` renders the event object of the test case named 'foo'.
+
+The `--test-case` flag is available only for the `event` and `expect` targets. If `--test-case` is not specified, cfft renders the event or expect object of the first test case.
 
 ## Template syntax
 
