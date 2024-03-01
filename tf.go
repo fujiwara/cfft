@@ -10,8 +10,9 @@ import (
 )
 
 type TFCmd struct {
-	External bool  `cmd:"" help:"output JSON for external data source"`
-	Publish  *bool `cmd:"" help:"set publish flag" default:"false"`
+	External     bool   `cmd:"" help:"output JSON for external data source"`
+	Publish      *bool  `cmd:"" help:"set publish flag" default:"false"`
+	ResourceName string `cmd:"" help:"resource name"`
 }
 
 type TFJSON struct {
@@ -46,8 +47,14 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
 	localCode := string(code)
+	var rname string
+	if opt.ResourceName != "" {
+		rname = opt.ResourceName
+	} else {
+		rname = app.config.Name
+	}
 	out := TFOutout{
-		Name:    app.config.Name,
+		Name:    rname,
 		Runtime: app.config.Runtime,
 		Comment: app.config.Comment,
 	}
@@ -67,7 +74,7 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 		}
 		if strings.Contains(localCode, "${") {
 			// local code contains interpolation. use variable to avoid tf template evaluation error
-			varName := fmt.Sprintf("code_of_%s", app.config.Name)
+			varName := fmt.Sprintf("cfft_code_of_%s", rname)
 			resource.Variable = map[string]TFVar{
 				varName: {
 					Type:        "string",
@@ -82,7 +89,7 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 		}
 		resource.Resource = TFCFF{
 			AWSCloudFrontFunction: map[string]TFOutout{
-				app.config.Name: out,
+				rname: out,
 			},
 		}
 		return enc.Encode(&resource)
