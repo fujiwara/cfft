@@ -7,7 +7,7 @@ async function handler(event) {
   const request = event.request;
   const clientIP = event.viewer.ip;
   const hostname = (await kvsHandle.exists(clientIP)) ? await kvsHandle.get(clientIP) : 'unknown';
-
+  console.log(`clientIP: ${clientIP}, hostname: ${hostname}`);
   request.headers['true-client-ip'] = { value: clientIP };
   request.headers['x-hostname'] = { value: hostname };
   return request;

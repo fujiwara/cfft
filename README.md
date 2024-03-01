@@ -672,6 +672,8 @@ The variable's default value is not parsed as Terraform's interpolation syntax. 
 }
 ```
 
+`cfft tf --resource-name foo` outputs the JSON with the tf resource name `foo` instead of the function name.
+
 ### Generate JSON for Terraform external data sources
 
 `cfft tf --external` command outputs a JSON for Terraform [external data sources](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external).
