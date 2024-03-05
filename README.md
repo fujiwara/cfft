@@ -629,7 +629,7 @@ cff.tf.json
         "name": "some-function",
         "runtime": "cloudfront-js-2.0",
         "code": "....(function code)....",
-        "comment": "comment of the function",
+        "comment": "comment of the function // sha256:...",
       }
     }
   }
@@ -667,6 +667,8 @@ The variable's default value is not parsed as Terraform's interpolation syntax. 
       "some-function": {
         "name": "some-function",
         "code": "${var.code_of_some-function}",
+        "comment": "comment of the function // sha256:...",
+        "publish": true,
         "runtime": "cloudfront-js-2.0"
       }
     }
@@ -685,7 +687,7 @@ $ cfft tf --external
 {
   "name": "some-function",
   "code": "....(function code)....",
-  "comment": "comment of the function",
+  "comment": "comment of the function // sha256:...",
   "runtime": "cloudfront-js-2.0"
 }
 ```
