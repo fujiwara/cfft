@@ -427,6 +427,8 @@ When the event-type is `viewer-response` and any step returns a response object(
 
 The `filter_command` is a command to filter the chained function code. The command must accepts the function code from stdin and outputs the filtered function code to stdout. For example, use `npx esbuild --minify` to minify the function code.
 
+Note: `esbuild --minify` may change identifiers in js code, so it may not work for js file includes `import` syntax.
+
 You can review the generated combined function code with `cfft render` command.
 
 ### Use CloudFront KeyValueStore
