@@ -1,3 +1,3 @@
 {
-  version: '1.0',
+  version: '{{ env `VERSION` `1.0` }}',
 }

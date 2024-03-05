@@ -32,7 +32,7 @@ type Config struct {
 
 // ReadFile supports jsonnet and yaml files. If the file is jsonnet or yaml, it will be evaluated and converted to json.
 func ReadFile(p string) ([]byte, error) {
-	b, err := goconfig.ReadWithEnv(p)
+	b, err := os.ReadFile(p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s, %w", p, err)
 	}
@@ -50,17 +50,21 @@ func ReadFile(p string) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to evaluate jsonnet %s, %w", p, err)
 			}
-			return []byte(s), nil
+			return goconfig.ReadWithEnvBytes([]byte(s))
 		}()
 	case ".yaml", ".yml":
 		var v any
 		if err := yaml.Unmarshal(b, &v); err != nil {
 			return nil, fmt.Errorf("failed to parse yaml %s, %w", p, err)
 		}
-		return json.Marshal(v)
+		b, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert yaml to json %s, %w", p, err)
+		}
+		return goconfig.ReadWithEnvBytes(b)
 	}
 	// otherwise, return as is
-	return b, nil
+	return goconfig.ReadWithEnvBytes(b)
 }
 
 // ReadFile reads file from the same directory as config file.
