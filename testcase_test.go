@@ -21,6 +21,10 @@ func TestSetup(t *testing.T) {
 			if err != nil {
 				t.Errorf("Setup returned an error: %v", err)
 			}
+			ev := testCase.GetEvent()
+			if ev.Version != "1.0" {
+				t.Errorf("GetEvent returned unexpected version: %v", ev.Version)
+			}
 		})
 	}
 }
