@@ -107,7 +107,7 @@ func TestTFExternalData(t *testing.T) {
 			if m["runtime"] != string(conf.Runtime) {
 				t.Error("external data source runtime is not same as cfft.yaml")
 			}
-			if m["comment"] != string(conf.Comment) {
+			if !strings.HasPrefix(m["comment"], conf.Comment+"// sha256:") {
 				t.Error("external data source comment is not same as cfft.yaml")
 			}
 		})
