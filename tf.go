@@ -2,6 +2,7 @@ package cfft
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -46,6 +47,11 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
+	// add hash of code to comment for detecting code change
+	h := sha256.New()
+	h.Write(code)
+	comment := app.config.Comment + fmt.Sprintf("// sha256:%x", h.Sum(nil))
+
 	localCode := string(code)
 	var rname string
 	if opt.ResourceName != "" {
@@ -56,7 +62,7 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 	out := TFOutout{
 		Name:    rname,
 		Runtime: app.config.Runtime,
-		Comment: app.config.Comment,
+		Comment: comment,
 	}
 	enc := json.NewEncoder(app.stdout)
 	enc.SetIndent("", "  ")
