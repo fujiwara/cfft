@@ -66,7 +66,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 	var kvsConfig *KeyValueStoreConfig
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: types.FunctionStageDevelopment,
 	})
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
@@ -82,7 +82,7 @@ func (app *CFFT) InitFunction(ctx context.Context, opt *InitCmd) error {
 		slog.Info("detecting kvs association...")
 		res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
 			Name:  aws.String(name),
-			Stage: Stage,
+			Stage: types.FunctionStageDevelopment,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to describe function, %w", err)

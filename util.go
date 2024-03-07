@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -510,4 +511,16 @@ func textToHTTPResponse(text string) (*http.Response, error) {
 	resp.Body = io.NopCloser(bytes.NewReader(body))
 
 	return resp, nil
+}
+
+// RemoveHeaderComment is a regexp to remove header comment from function code
+var RegexpCodeHeaderComment = regexp.MustCompile(`//cfft:[^\n]+\n`)
+
+// RemoveHeaderComment removes header comment from function code
+func RemoveHeaderComment(code []byte) []byte {
+	found := RegexpCodeHeaderComment.Find(code)
+	if found != nil {
+		return bytes.Replace(code, found, nil, 1)
+	}
+	return code
 }

@@ -19,8 +19,6 @@ import (
 	"github.com/shogo82148/go-retry"
 )
 
-var Stage = types.FunctionStageDevelopment
-
 var Version = "dev"
 
 var logLevel = new(slog.LevelVar)
@@ -131,7 +129,7 @@ func (app *CFFT) TestFunction(ctx context.Context, opt *TestCmd) error {
 	if err := opt.Setup(); err != nil {
 		return err
 	}
-	code, err := app.config.FunctionCode(ctx)
+	code, err := app.config.FunctionCode(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to load function code, %w", err)
 	}
@@ -200,7 +198,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 
 	res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: types.FunctionStageDevelopment,
 	})
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
@@ -235,7 +233,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 
 		if res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 			Name:  aws.String(name),
-			Stage: Stage,
+			Stage: types.FunctionStageDevelopment,
 		}); err != nil {
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		} else {
@@ -326,7 +324,7 @@ func (r *CFFRunner) Run(ctx context.Context, name, etag string, event []byte, lo
 		res, err := r.cloudfront.TestFunction(ctx, &cloudfront.TestFunctionInput{
 			Name:        aws.String(name),
 			IfMatch:     aws.String(etag),
-			Stage:       Stage,
+			Stage:       types.FunctionStageDevelopment,
 			EventObject: event,
 		})
 		if err != nil {

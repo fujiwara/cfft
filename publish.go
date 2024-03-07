@@ -21,7 +21,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	var remoteCode []byte
 	if res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: types.FunctionStageDevelopment,
 	}); err != nil {
 		var notFound *types.NoSuchFunctionExists
 		if errors.As(err, &notFound) {
@@ -34,7 +34,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	}
 	slog.Info(f("function %s found", name))
 
-	localCode, err := app.config.FunctionCode(ctx)
+	localCode, err := app.config.FunctionCode(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}

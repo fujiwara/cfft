@@ -3,6 +3,8 @@ package cfft
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -72,7 +74,7 @@ func (c *Config) ReadFile(p string) ([]byte, error) {
 	return ReadFile(filepath.Join(c.dir, p))
 }
 
-func (c *Config) FunctionCode(ctx context.Context) ([]byte, error) {
+func (c *Config) FunctionCode(ctx context.Context, hashCode []byte) ([]byte, error) {
 	if c.functionCode != nil {
 		return c.functionCode, nil
 	}
@@ -80,7 +82,21 @@ func (c *Config) FunctionCode(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read function code, %w", err)
 	}
-	c.functionCode = code
+	// hash function code
+	h := sha256.New()
+	if hashCode == nil {
+		h.Write(code)
+	} else {
+		h.Write(hashCode)
+	}
+	sum := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	// append header comment
+	buf := new(bytes.Buffer)
+	buf.Grow(len(code) + 64)
+	buf.WriteString("//cfft:" + sum + "\n")
+	buf.Write(code)
+
+	c.functionCode = buf.Bytes()
 	slog.Debug(f("function code size: %d", len(c.functionCode)))
 	if s := len(c.functionCode); s > MaxCodeSize {
 		return nil, fmt.Errorf("function code size %d exceeds %d bytes", s, MaxCodeSize)

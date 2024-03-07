@@ -90,7 +90,7 @@ func TestTFExternalData(t *testing.T) {
 			b := &bytes.Buffer{}
 			app.SetStdout(b)
 			publish := true
-			if err := app.RunTF(ctx, &cfft.TFCmd{External: true, Publish: &publish}); err != nil {
+			if err := app.RunTF(ctx, &cfft.TFCmd{External: true, Publish: &publish, Live: false}); err != nil {
 				t.Fatal(err)
 			}
 			var m map[string]string // for external data source, all values must be string
@@ -98,6 +98,9 @@ func TestTFExternalData(t *testing.T) {
 				t.Log("failed to parse json", err)
 			}
 			code, _ := os.ReadFile(path.Join("testdata", name, "function.js"))
+			// compare code, name, runtime, comment
+			// remove header comment
+			m["code"] = cfft.RegexpCodeHeaderComment.ReplaceAllString(m["code"], "")
 			if m["code"] != string(code) {
 				t.Error("external data source code is not same as function.js")
 			}

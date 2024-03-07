@@ -3,9 +3,13 @@ package cfft
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 )
 
@@ -13,6 +17,7 @@ type TFCmd struct {
 	External     bool   `cmd:"" help:"output JSON for external data source"`
 	Publish      *bool  `cmd:"" help:"set publish flag" default:"false"`
 	ResourceName string `cmd:"" help:"resource name"`
+	Live         bool   `cmd:"" help:"compare with live function code" default:"true"`
 }
 
 type TFJSON struct {
@@ -41,8 +46,36 @@ type TFOutout struct {
 	Publish *bool                 `json:"publish,omitempty"`
 }
 
+func (app *CFFT) getLiveFunctionCode(ctx context.Context) ([]byte, error) {
+	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
+		Name:  aws.String(app.config.Name),
+		Stage: types.FunctionStageLive,
+	})
+	if err != nil {
+		var notFound *types.NoSuchFunctionExists
+		if errors.As(err, &notFound) {
+			// Live function does not exist, This is not an error
+			slog.Info(f("live function %s not found", app.config.Name))
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get function code, %w", err)
+	}
+	slog.Info(f("live function %s found", app.config.Name))
+
+	return RemoveHeaderComment(res.FunctionCode), nil
+}
+
 func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
-	code, err := app.config.FunctionCode(ctx)
+	var liveCode []byte
+	var err error
+	if opt.Live { // compare with live function code
+		liveCode, err = app.getLiveFunctionCode(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	code, err := app.config.FunctionCode(ctx, liveCode)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}

@@ -34,7 +34,7 @@ func (app *CFFT) diffFunctionConfig(ctx context.Context) error {
 	var remote string
 	res, err := app.cloudfront.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: types.FunctionStageDevelopment,
 	})
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
@@ -75,7 +75,7 @@ func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 	var remoteCode []byte
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: types.FunctionStageDevelopment,
 	})
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
@@ -93,7 +93,7 @@ func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 	if res != nil {
 		remote = aws.ToString(res.ETag)
 	}
-	localCode, err := app.config.FunctionCode(ctx)
+	localCode, err := app.config.FunctionCode(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}

@@ -50,7 +50,7 @@ func TestLocalRunner(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			code, err := app.Config().FunctionCode(ctx)
+			code, err := app.Config().FunctionCode(ctx, nil)
 			if err != nil {
 				t.Error(err)
 			}

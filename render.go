@@ -23,7 +23,7 @@ func (app *CFFT) Render(ctx context.Context, opt *RenderCmd) error {
 }
 
 func (app *CFFT) renderFunction(ctx context.Context) error {
-	localCode, err := app.config.FunctionCode(ctx)
+	localCode, err := app.config.FunctionCode(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
