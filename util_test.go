@@ -1,6 +1,8 @@
 package cfft_test
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -124,5 +126,41 @@ Location: https://example.com/
 	}
 	if parsedResponse.Body != nil {
 		t.Errorf("parsedResponse.Body should be nil")
+	}
+}
+
+func TestCFFTHeader(t *testing.T) {
+	code := []byte(`
+function handler(event) {
+	return event.request;
+}
+`)
+	removed := cfft.RemoveCFFTHeader(code)
+	if !bytes.Equal(code, removed) {
+		t.Error("RemoveCFFTHeader should not modify the code actually")
+	}
+	if !cfft.IsSameCode(code, removed) {
+		t.Error("RemoveCFFTHeader should not modify the code actually")
+	}
+
+	added := cfft.AddCFFTHeader(code, "test")
+	if !cfft.IsSameCode(code, added) {
+		t.Error("AddCFFTHeader should not modify the code actually")
+	}
+	// add header again, should not modify the code actually
+	added = cfft.AddCFFTHeader(added, "test test")
+	if !cfft.IsSameCode(code, added) {
+		t.Error("AddCFFTHeader should not modify the code actually")
+	}
+}
+
+func TestContextIsTesting(t *testing.T) {
+	ctx := cfft.NewTestContext()
+	if !cfft.IsTesting(ctx) {
+		t.Error("IsTesting should return true")
+	}
+	ctx = context.Background()
+	if cfft.IsTesting(ctx) {
+		t.Error("IsTesting should return false")
 	}
 }

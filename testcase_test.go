@@ -1,14 +1,13 @@
 package cfft_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/fujiwara/cfft"
 )
 
 func TestSetup(t *testing.T) {
-	ctx := context.Background()
+	ctx := cfft.NewTestContext()
 
 	for _, ext := range []string{".json", ".jsonnet", ".yaml", ".yml"} {
 		t.Run(ext, func(t *testing.T) {
@@ -30,7 +29,7 @@ func TestSetup(t *testing.T) {
 }
 
 func TestSetupText(t *testing.T) {
-	ctx := context.Background()
+	ctx := cfft.NewTestContext()
 
 	for _, ext := range []string{".jsonnet", ".yaml"} {
 		t.Run(ext, func(t *testing.T) {
