@@ -37,7 +37,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
-	if !IsSameCode(localCode, remoteCode) {
+	if !isSameCode(localCode, remoteCode) {
 		return fmt.Errorf("function code is not up-to-date. please run `cfft diff` and `cfft test` before publish")
 	}
 

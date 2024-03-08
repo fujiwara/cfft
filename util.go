@@ -513,24 +513,31 @@ func textToHTTPResponse(text string) (*http.Response, error) {
 	return resp, nil
 }
 
-var RegexpCFFHeaderComment = regexp.MustCompile(`^// cfft:[^\n]*\n`)
+var regexpCFFHeaderComment = regexp.MustCompile(`^// cfft:[^\n]*\n`)
 
-// RemoveCFFTHeader removes cfft header comment from bytes
-func RemoveCFFTHeader(s []byte) []byte {
-	found := RegexpCFFHeaderComment.Find(s)
+// removeCFFTHeader removes cfft header comment from bytes
+func removeCFFTHeader(code []byte) []byte {
+	found := regexpCFFHeaderComment.Find(code)
 	if found == nil {
-		return s
+		return code
 	}
-	return bytes.Replace(s, found, nil, 1)
+	return bytes.Replace(code, found, nil, 1)
 }
 
-func GenerateCFFTHeader(comment string) string {
-	return "// cfft: " + comment + "\n"
+// AddCFFTHeader adds cfft header comment to bytes
+func addCFFTHeader(code []byte, comment string) []byte {
+	code = removeCFFTHeader(code)
+	buf := new(bytes.Buffer)
+	h := "// cfft: " + comment + "\n"
+	buf.Grow(len(code) + len(h))
+	buf.WriteString(h)
+	buf.Write(code)
+	return buf.Bytes()
 }
 
-// IsSameCode returns true if a and b are same code (ignoring cfft header comment)
-func IsSameCode(a, b []byte) bool {
-	return bytes.Equal(RemoveCFFTHeader(a), RemoveCFFTHeader(b))
+// isSameCode returns true if a and b are same code (ignoring cfft header comment)
+func isSameCode(a, b []byte) bool {
+	return bytes.Equal(removeCFFTHeader(a), removeCFFTHeader(b))
 }
 
 type ContextKey string

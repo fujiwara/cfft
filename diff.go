@@ -58,7 +58,7 @@ func (app *CFFT) diffFunctionConfig(ctx context.Context) error {
 	remoteCode, _ := yaml.Marshal(remoteConfig)
 	localCode, _ := yaml.Marshal(localConfig)
 
-	if IsSameCode(remoteCode, localCode) {
+	if isSameCode(remoteCode, localCode) {
 		slog.Info("function config is up-to-date")
 		return nil
 	}
@@ -97,7 +97,7 @@ func (app *CFFT) diffFunctionCode(ctx context.Context) error {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
 
-	if IsSameCode(localCode, remoteCode) {
+	if isSameCode(localCode, remoteCode) {
 		slog.Info("function code is up-to-date")
 		return nil
 	}

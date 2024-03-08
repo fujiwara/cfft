@@ -239,7 +239,7 @@ func (app *CFFT) prepareFunction(ctx context.Context, name string, code []byte, 
 			return "", fmt.Errorf("failed to describe function, %w", err)
 		} else {
 			etag = aws.ToString(res.ETag)
-			if !IsSameCode(res.FunctionCode, code) || updateFunctionConfig {
+			if !isSameCode(res.FunctionCode, code) || updateFunctionConfig {
 				slog.Info("function is changed, updating...")
 				res, err := app.cloudfront.UpdateFunction(ctx, &cloudfront.UpdateFunctionInput{
 					Name:           aws.String(name),

@@ -7,6 +7,14 @@ func NewTestContext() context.Context {
 }
 
 // export for testing only
+
+var (
+	IsTesting        = isTesting
+	IsSameCode       = isSameCode
+	RemoveCFFTHeader = removeCFFTHeader
+	AddCFFTHeader    = addCFFTHeader
+)
+
 func (app *CFFT) Config() *Config {
 	return app.config
 }
