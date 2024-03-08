@@ -39,7 +39,7 @@ func (r *localRunner) Run(ctx context.Context, name, _ string, event []byte, log
 
 func TestLocalRunner(t *testing.T) {
 	dirs := []string{"funcv1", "funcv2", "chain", "partial-event"}
-	ctx := context.Background()
+	ctx := cfft.NewTestContext()
 	for _, dir := range dirs {
 		t.Run(dir, func(t *testing.T) {
 			conf, err := cfft.LoadConfig(ctx, path.Join("testdata", dir, "cfft.yaml"))

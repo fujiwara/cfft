@@ -1,5 +1,11 @@
 package cfft
 
+import "context"
+
+func NewTestContext() context.Context {
+	return context.WithValue(context.Background(), testingKey, true)
+}
+
 // export for testing only
 func (app *CFFT) Config() *Config {
 	return app.config

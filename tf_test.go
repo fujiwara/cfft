@@ -2,7 +2,6 @@ package cfft_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"os"
 	"path"
@@ -23,7 +22,7 @@ var TFResourceCases = []struct {
 }
 
 func TestTFResource(t *testing.T) {
-	ctx := context.Background()
+	ctx := cfft.NewTestContext()
 	for _, cs := range TFResourceCases {
 		t.Run("tf-resource-"+cs.Dir, func(t *testing.T) {
 			var rname string
@@ -76,7 +75,7 @@ func TestTFResource(t *testing.T) {
 }
 
 func TestTFExternalData(t *testing.T) {
-	ctx := context.Background()
+	ctx := cfft.NewTestContext()
 	for _, name := range []string{"funcv1", "funcv2"} {
 		t.Run("tf-resource-"+name, func(t *testing.T) {
 			conf, err := cfft.LoadConfig(ctx, path.Join("testdata", name, "/cfft.yaml"))

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -510,4 +511,37 @@ func textToHTTPResponse(text string) (*http.Response, error) {
 	resp.Body = io.NopCloser(bytes.NewReader(body))
 
 	return resp, nil
+}
+
+var RegexpCFFHeaderComment = regexp.MustCompile(`^// cfft:[^\n]*\n`)
+
+// RemoveCFFTHeader removes cfft header comment from bytes
+func RemoveCFFTHeader(s []byte) []byte {
+	found := RegexpCFFHeaderComment.Find(s)
+	if found == nil {
+		return s
+	}
+	return bytes.Replace(s, found, nil, 1)
+}
+
+func GenerateCFFTHeader(comment string) string {
+	return "// cfft: " + comment + "\n"
+}
+
+// IsSameCode returns true if a and b are same code (ignoring cfft header comment)
+func IsSameCode(a, b []byte) bool {
+	return bytes.Equal(RemoveCFFTHeader(a), RemoveCFFTHeader(b))
+}
+
+type ContextKey string
+
+const testingKey = ContextKey("testing")
+
+func isTesting(ctx context.Context) bool {
+	v := ctx.Value(testingKey)
+	if v == nil {
+		return false
+	}
+	ok, _ := v.(bool)
+	return ok
 }

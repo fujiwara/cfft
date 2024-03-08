@@ -1,7 +1,6 @@
 package cfft
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -38,7 +37,7 @@ func (app *CFFT) PublishFunction(ctx context.Context, opt *PublishCmd) error {
 	if err != nil {
 		return fmt.Errorf("failed to read function code, %w", err)
 	}
-	if !bytes.Equal(localCode, remoteCode) {
+	if !IsSameCode(localCode, remoteCode) {
 		return fmt.Errorf("function code is not up-to-date. please run `cfft diff` and `cfft test` before publish")
 	}
 
