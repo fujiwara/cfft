@@ -15,13 +15,19 @@ import (
 	"github.com/hexops/gotextdiff/span"
 )
 
-type DiffCmd struct{}
+type DiffCmd struct {
+	Live bool `cmd:"" help:"diff with LIVE stage"`
+}
 
 func (app *CFFT) DiffFunction(ctx context.Context, opt *DiffCmd) error {
 	if err := app.diffFunctionConfig(ctx); err != nil {
 		return err
 	}
-	if err := app.diffFunctionCode(ctx); err != nil {
+	stage := types.FunctionStageDevelopment
+	if opt.Live {
+		stage = types.FunctionStageLive
+	}
+	if err := app.diffFunctionCode(ctx, stage); err != nil {
 		return err
 	}
 	return nil
@@ -69,17 +75,17 @@ func (app *CFFT) diffFunctionConfig(ctx context.Context) error {
 	return nil
 }
 
-func (app *CFFT) diffFunctionCode(ctx context.Context) error {
+func (app *CFFT) diffFunctionCode(ctx context.Context, stage types.FunctionStage) error {
 	name := app.config.Name
 	var remoteCode []byte
 	res, err := app.cloudfront.GetFunction(ctx, &cloudfront.GetFunctionInput{
 		Name:  aws.String(name),
-		Stage: Stage,
+		Stage: stage,
 	})
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
 		if errors.As(err, &notFound) {
-			slog.Info(f("function %s not found", name))
+			slog.Info(f("function %s not found in %s stage", name, stage))
 		} else {
 			return fmt.Errorf("failed to describe function, %w", err)
 		}

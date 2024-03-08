@@ -475,7 +475,7 @@ async function handler(event) {
 
 ### Diff function code
 
-`cfft diff` compares the function code with the code in the CloudFront Functions.
+`cfft diff` compares the function code with the code in the CloudFront Functions in the "DEVELOPMENT" stage.
 
 ```console
 $ cfft diff
@@ -490,6 +490,8 @@ $ cfft diff
    return request;
  }
 ```
+
+`cfft diff --live` compares the function code with the code in the CloudFront Functions in the "LIVE" stage.
 
 ### Publish function
 
