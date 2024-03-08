@@ -153,7 +153,8 @@ func (app *CFFT) getFunctionCode(ctx context.Context, stage types.FunctionStage)
 	if err != nil {
 		var notFound *types.NoSuchFunctionExists
 		if errors.As(err, &notFound) {
-			return nil, fmt.Errorf("function %s not found", name)
+			slog.Info(f("function %s not found in %s stage", name, stage))
+			return nil, nil // not found is not an error
 		}
 		return nil, fmt.Errorf("failed to describe function, %w", err)
 	}
