@@ -32,7 +32,7 @@ Download the binary from [GitHub Releases](https://github.com/fujiwara/cfft/rele
 
 ### aqua
 
-[aquaproj](https://aquaproj.github.io/) supports cfft. `fujiwara/cfft` is available in [aqua-registory](https://github.com/aquaproj/aqua-registry).
+[aquaproj](https://aquaproj.github.io/) supports cfft. `fujiwara/cfft` is available in [aqua-registry](https://github.com/aquaproj/aqua-registry).
 
 ```console
 $ aqua init
