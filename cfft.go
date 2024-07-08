@@ -337,7 +337,7 @@ func (r *CFFRunner) Run(ctx context.Context, name, etag string, event []byte, lo
 			return retry.MarkPermanent(errors.New(errMsg))
 		}
 		if testResult.ComputeUtilization == nil || *testResult.ComputeUtilization == "" || *testResult.ComputeUtilization == "0" {
-			logger.Debug("ComputeUtilization: 0, retring...")
+			logger.Warn("ComputeUtilization: 0, retrying...")
 			return fmt.Errorf("ComputeUtilization: 0")
 		}
 		return nil
