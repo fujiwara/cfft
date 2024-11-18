@@ -139,7 +139,7 @@ func localEnv(key, value string) func() {
 	prevValue, ok := os.LookupEnv(key)
 
 	if err := os.Setenv(key, value); err != nil {
-		slog.Error("cannot set environment variable: %v", err)
+		slog.Error("cannot set environment variable:", "error", err)
 		panic(err)
 	}
 

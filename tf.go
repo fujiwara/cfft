@@ -39,11 +39,12 @@ type TFCFF struct {
 }
 
 type TFOutout struct {
-	Name    string                `json:"name"`
-	Code    string                `json:"code"`
-	Runtime types.FunctionRuntime `json:"runtime"`
-	Comment string                `json:"comment"`
-	Publish *bool                 `json:"publish,omitempty"`
+	Name                      string                `json:"name"`
+	Code                      string                `json:"code"`
+	Runtime                   types.FunctionRuntime `json:"runtime"`
+	Comment                   string                `json:"comment"`
+	KeyValueStoreAssociations []string              `json:"key_value_store_associations,omitempty"`
+	Publish                   *bool                 `json:"publish,omitempty"`
 }
 
 func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
@@ -63,6 +64,10 @@ func (app *CFFT) RunTF(ctx context.Context, opt *TFCmd) error {
 		Runtime: app.config.Runtime,
 		Comment: app.config.Comment,
 	}
+	if app.cfkvsArn != "" {
+		out.KeyValueStoreAssociations = []string{app.cfkvsArn}
+	}
+
 	enc := json.NewEncoder(app.stdout)
 	enc.SetIndent("", "  ")
 
