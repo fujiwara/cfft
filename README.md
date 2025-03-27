@@ -400,7 +400,7 @@ cfft supports chaining multiple functions. The feature is useful to test the com
 name: my-function
 runtime: cloudfront-js-2.0 # required
 function:
-  event-type: viewer-request
+  event_type: viewer-request
   functions:
     - function1.js
     - function2.js
@@ -412,7 +412,7 @@ testCases:
 The `runtime` must be `cloudfront-js-2.0`.
 
 - `function` element allows you to specify multiple function files.
-  - `event-type` must be `viewer-request` or `viewer-response`. required.
+  - `event_type` must be `viewer-request` or `viewer-response`. required.
   - `functions` element is an array of function files.
   - `filter_command` is a command to filter the chained function code. optional.
 
@@ -423,7 +423,7 @@ The combined function works as the following steps.
 2. The result of the first function is passed to the second function.
 3. ...(repeat)
 
-When the event-type is `viewer-response` and any step returns a response object(includes `statusCode`), the response object is returned to the viewer immidiately. The following functions are not evaluated.
+When the event_type is `viewer-response` and any step returns a response object(includes `statusCode`), the response object is returned to the viewer immidiately. The following functions are not evaluated.
 
 The `filter_command` is a command to filter the chained function code. The command must accepts the function code from stdin and outputs the filtered function code to stdout. For example, use `npx esbuild --minify` to minify the function code.
 
